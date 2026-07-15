@@ -7,11 +7,7 @@
 @layer base {
   body {
     font-family: 'Inter', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: clip;
-    background-color: #0a0a0a;
-    color: #ffffff;
+    @apply antialiased overflow-x-clip bg-zinc-50 text-zinc-900;
   }
 
   .font-serif {
@@ -19,13 +15,12 @@
   }
 }
 
-@layer utilities {
-  .animation-fade-in-down {
-    animation: fade-in-down 0.2s ease-out forwards;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
-@keyframes fade-in-down {
+/* Custom fade-in-down animation from the Drift styling specs */
+@keyframes fadeInDownCustom {
   0% {
     opacity: 0;
     transform: translateY(-8px);
@@ -36,22 +31,74 @@
   }
 }
 
-/* Custom scrollbar for a cleaner look */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #0a0a0a;
-}
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.animate-fade-in-down {
+  animation: fadeInDownCustom 0.2s ease-out forwards;
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+/* Nav Link Hover Underline */
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background-color: #7c3aed;
+  transition: all 0.3s ease;
+}
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* GPCM Card Hover Effects */
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* Gallery Zoom Hover Effects */
+.gallery-img {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.gallery-img:hover {
+  transform: scale(1.08);
+}
+
+/* Skeleton Preload Tabs / Cards Shimmer Animation */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-preload {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite linear;
+}
+
+.skeleton-preload-dark {
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite linear;
+}
+
+/* CSS Grid layout transition helper for active reveal cards */
+.reveal-card {
+  opacity: 0;
+  transform: translateX(4rem);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+.reveal-card.revealed {
+  opacity: 1;
+  transform: translateX(0);
 }
