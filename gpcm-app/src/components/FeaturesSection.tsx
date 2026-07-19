@@ -18,13 +18,14 @@ export default function FeaturesSection() {
             <div className="uppercase tracking-[3px] text-amber-400 text-sm font-medium mb-3">
               Spiritual Leadership
             </div>
-            <h2 className="font-serif text-5xl leading-none mb-6">
+            <h2 className="font-serif text-5xl leading-none mb-6 text-white">
               Apostle Bishop Dr. Ilaya O. Clement
             </h2>
-            <p className="text-2xl text-amber-300 mb-8">President &amp; Founder</p>
+            <p className="text-2xl text-amber-300 mb-8 font-serif italic">President &amp; Founder</p>
             <p className="text-zinc-300 leading-relaxed text-lg mb-8">
               A visionary leader, entrepreneur, and dedicated servant of God. Bishop Clement has a heart
-              for the lost and a passion for community transformation.
+              for the lost and a passion for community transformation. He leads GPCM INT'L with a focus 
+              on the holistic development of believers—spirit, mind, and body.
             </p>
             <div className="flex gap-4">
               <a
@@ -33,3 +34,11 @@ export default function FeaturesSection() {
               >
                 <i className="fa-solid fa-phone" />
                 Call Bishop
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
