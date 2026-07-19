@@ -9,51 +9,32 @@
     font-family: 'Inter', sans-serif;
     @apply antialiased overflow-x-clip bg-zinc-50 text-zinc-900;
   }
-
   .font-serif {
     font-family: 'Crimson Text', serif;
   }
 }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
-/* Custom fade-in-down animation from the Drift styling specs */
 @keyframes fadeInDownCustom {
-  0% {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fade-in-down {
   animation: fadeInDownCustom 0.2s ease-out forwards;
 }
 
-/* Nav Link Hover Underline */
-.nav-link {
-  position: relative;
-}
+.nav-link { position: relative; }
 .nav-link::after {
   content: '';
   position: absolute;
-  width: 0;
-  height: 2px;
-  bottom: -2px;
-  left: 0;
+  width: 0; height: 2px;
+  bottom: -2px; left: 0;
   background-color: #7c3aed;
   transition: all 0.3s ease;
 }
-.nav-link:hover::after {
-  width: 100%;
-}
+.nav-link:hover::after { width: 100%; }
 
-/* GPCM Card Hover Effects */
 .card-hover {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -62,37 +43,26 @@ html {
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
-/* Gallery Zoom Hover Effects */
 .gallery-img {
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.gallery-img:hover {
-  transform: scale(1.08);
-}
+.gallery-img:hover { transform: scale(1.08); }
 
-/* Skeleton Preload Tabs / Cards Shimmer Animation */
 @keyframes skeleton-shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
-
 .skeleton-preload {
   background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite linear;
 }
-
 .skeleton-preload-dark {
   background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite linear;
 }
 
-/* CSS Grid layout transition helper for active reveal cards */
 .reveal-card {
   opacity: 0;
   transform: translateX(4rem);
