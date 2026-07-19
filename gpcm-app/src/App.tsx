@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import AboutSection from './components/AboutSection';
@@ -12,15 +12,11 @@ import LiveModal from './components/LiveModal';
 import WhatsAppFloat from './components/WhatsAppFloat';
 
 function App() {
+  const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        const liveModal = document.getElementById('live-modal');
-        if (liveModal && !liveModal.classList.contains('hidden')) {
-          liveModal.classList.add('hidden');
-          liveModal.classList.remove('flex');
-        }
-      }
+      if (e.key === 'Escape') setIsLiveModalOpen(false);
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
@@ -28,7 +24,7 @@ function App() {
 
   return (
     <div className="tail-container bg-zinc-50 text-zinc-900 min-h-screen relative overflow-x-clip">
-      <Navbar />
+      <Navbar onOpenLiveModal={() => setIsLiveModalOpen(true)} />
       <main>
         <HeroSection />
         <AboutSection />
@@ -40,7 +36,7 @@ function App() {
       </main>
       <Footer />
       <WhatsAppFloat />
-      <LiveModal />
+      <LiveModal isOpen={isLiveModalOpen} onClose={() => setIsLiveModalOpen(false)} />
     </div>
   );
 }
