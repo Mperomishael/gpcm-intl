@@ -31,7 +31,7 @@ export default function LiveModal({ isOpen, onClose }: LiveModalProps) {
 
           <div className="space-y-4">
             <a
-              href="https://facebook.com"
+              href="https://web.facebook.com/people/Glowing-Palace/61581418854698/"
               target="_blank"
               rel="noreferrer"
               className="w-full py-5 bg-[#1877F2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:opacity-90 transition-all"
@@ -40,7 +40,7 @@ export default function LiveModal({ isOpen, onClose }: LiveModalProps) {
               Watch on Facebook
             </a>
             <a
-              href="https://youtube.com"
+              href="https://youtube.com/@palaceofworshippers?si=yKSGo2gFCs2jxnb5"
               target="_blank"
               rel="noreferrer"
               className="w-full py-5 bg-[#FF0000] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:opacity-90 transition-all"
