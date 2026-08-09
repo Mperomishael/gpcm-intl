@@ -11,7 +11,7 @@ export default function LiveModal({ isOpen, onClose }: LiveModalProps) {
   return (
     <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative">
-        {/* Close button — fully wired to onClose prop */}
+        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-6 right-6 text-zinc-400 hover:text-zinc-900 text-3xl font-bold leading-none"
@@ -31,7 +31,7 @@ export default function LiveModal({ isOpen, onClose }: LiveModalProps) {
 
           <div className="space-y-4">
             <a
-              href="https://web.facebook.com/people/Glowing-Palace/61581418854698/"
+              href="https://www.facebook.com/people/Glowing-Palace/61581418854698"
               target="_blank"
               rel="noreferrer"
               className="w-full py-5 bg-[#1877F2] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:opacity-90 transition-all"
@@ -40,7 +40,7 @@ export default function LiveModal({ isOpen, onClose }: LiveModalProps) {
               Watch on Facebook
             </a>
             <a
-              href="https://youtube.com/@palaceofworshippers?si=yKSGo2gFCs2jxnb5"
+              href="https://youtube.com/@palaceofworshippers"
               target="_blank"
               rel="noreferrer"
               className="w-full py-5 bg-[#FF0000] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:opacity-90 transition-all"
