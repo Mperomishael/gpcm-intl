@@ -43,6 +43,25 @@ html { scroll-behavior: smooth; }
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
+/* ===== Hero video – clearer & more saturated ===== */
+.hero-video {
+  /* boost saturation & contrast slightly for a richer look */
+  filter: saturate(1.25) contrast(1.08) brightness(1.05);
+  /* hardware acceleration */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  /* smoother scaling on different screens */
+  object-fit: cover;
+  object-position: center;
+}
+
+/* optional: reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .hero-video {
+    filter: none;
+  }
+}
+
 .gallery-img {
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
