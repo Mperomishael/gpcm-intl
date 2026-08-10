@@ -60,7 +60,7 @@ export default function HeroSection() {
           hero-video`}
       >
         {/* put your file in public/hero.mp4 */}
-        <source src="/hero.mp4" type="video/mp4" />
+        <source src="/lv_0_20260809121737.webm" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
 
