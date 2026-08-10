@@ -1,29 +1,101 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+const MESSAGES = [
+  {
+    title: "Welcome to GPCM INT'L",
+    subtitle: 'A place where lives are transformed',
+  },
+  {
+    title: 'We Matter in God’s Sight',
+    subtitle: 'Loved • Valued • Called for a purpose',
+  },
+];
+
 export default function HeroSection() {
   const [videoReady, setVideoReady] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // animation state
+  const [msgIndex, setMsgIndex] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const [showSubtitle, setShowSubtitle] = useState(false);
+  const [phase, setPhase] = useState<'typing' | 'holding' | 'exiting'>('typing');
+
+  // ---------- video ready ----------
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleCanPlay = () => {
       setVideoReady(true);
-      // small delay so the fade feels smooth
       setTimeout(() => setShowLoader(false), 400);
     };
 
-    // if already buffered (e.g. cached)
     if (video.readyState >= 3) {
       handleCanPlay();
     } else {
       video.addEventListener('canplay', handleCanPlay);
     }
-
     return () => video.removeEventListener('canplay', handleCanPlay);
   }, []);
+
+  // ---------- typewriter + cycle ----------
+  useEffect(() => {
+    if (!videoReady) return;
+
+    const current = MESSAGES[msgIndex];
+    let charIndex = 0;
+    let typingTimer: ReturnType<typeof setTimeout>;
+    let holdTimer: ReturnType<typeof setTimeout>;
+    let exitTimer: ReturnType<typeof setTimeout>;
+
+    setTypedText('');
+    setShowSubtitle(false);
+    setPhase('typing');
+
+    const typeNext = () => {
+      if (charIndex <= current.title.length) {
+        setTypedText(current.title.slice(0, charIndex));
+        charIndex += 1;
+
+        // slight pause after spaces and punctuation for a natural feel
+        const lastChar = current.title[charIndex - 2];
+        const delay =
+          lastChar === ' ' ? 120 :
+          lastChar === "'" || lastChar === '’' ? 180 :
+          55 + Math.random() * 35;
+
+        typingTimer = setTimeout(typeNext, delay);
+      } else {
+        // finished typing → show subtitle
+        setShowSubtitle(true);
+        setPhase('holding');
+
+        // hold the full message, then exit
+        holdTimer = setTimeout(() => {
+          setPhase('exiting');
+          setShowSubtitle(false);
+
+          // after exit animation, move to next message
+          exitTimer = setTimeout(() => {
+            setMsgIndex((prev) => (prev + 1) % MESSAGES.length);
+          }, 700);
+        }, 4200);
+      }
+    };
+
+    // small delay before starting to type
+    typingTimer = setTimeout(typeNext, 500);
+
+    return () => {
+      clearTimeout(typingTimer);
+      clearTimeout(holdTimer);
+      clearTimeout(exitTimer);
+    };
+  }, [msgIndex, videoReady]);
+
+  const isExiting = phase === 'exiting';
 
   return (
     <section
@@ -34,9 +106,7 @@ export default function HeroSection() {
       {showLoader && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950">
           <div className="relative">
-            {/* outer ring */}
             <div className="w-16 h-16 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
-            {/* inner glow */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-amber-400 opacity-80 animate-pulse" />
             </div>
@@ -59,12 +129,12 @@ export default function HeroSection() {
           ${videoReady ? 'opacity-100' : 'opacity-0'}
           hero-video`}
       >
-        {/* put your file in public/hero.mp4 */}
-        <source src="/lv_0_20260809121737.webm" type="video/mp4" />
+        {/* your actual file */}
+        <source src="/lv_0_20260809121737.webm" type="video/webm" />
         Your browser does not support the video tag.
       </video>
 
-      {/* subtle dark gradient so text stays readable, but keeps video vibrant */}
+      {/* gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/25 to-black/60 z-10" />
 
       {/* ===== CONTENT ===== */}
@@ -72,16 +142,35 @@ export default function HeroSection() {
         className={`relative z-20 max-w-5xl mx-auto px-6 text-center text-white transition-all duration-700
           ${videoReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
       >
-        <div className="space-y-5">
-          <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl font-bold leading-none tracking-tighter drop-shadow-lg">
-            Welcome to GPCM INT'L
+        <div
+          className={`space-y-5 transition-all duration-700 ease-out
+            ${isExiting ? 'opacity-0 -translate-y-6 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'}`}
+        >
+          {/* Typewriter title */}
+          <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl font-bold leading-none tracking-tighter drop-shadow-lg min-h-[1.15em]">
+            {typedText}
+            {/* blinking cursor while typing */}
+            {phase === 'typing' && (
+              <span className="inline-block w-[3px] h-[0.85em] ml-1 bg-amber-300 align-middle animate-pulse" />
+            )}
           </h1>
-          <p className="max-w-xl mx-auto text-xl sm:text-2xl text-white/95 drop-shadow-md">
-            A place where lives are transformed
+
+          {/* Subtitle – fades in after typing finishes */}
+          <p
+            className={`max-w-xl mx-auto text-xl sm:text-2xl text-white/95 drop-shadow-md transition-all duration-700
+              ${showSubtitle && !isExiting
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-3'}`}
+          >
+            {MESSAGES[msgIndex].subtitle}
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
+        {/* Buttons – always visible once video is ready */}
+        <div
+          className={`flex flex-col sm:flex-row gap-4 justify-center mt-10 transition-opacity duration-700
+            ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+        >
           <button
             onClick={() =>
               document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })
