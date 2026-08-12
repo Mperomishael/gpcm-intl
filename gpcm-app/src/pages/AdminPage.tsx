@@ -14,7 +14,8 @@ interface MediaItem {
   createdAt: string;
 }
 
-const CATEGORIES = ['gallery', 'hero', 'about', 'leader', 'other'];
+// gallery → Gallery section | leader → Features (Bishop photo) | other → misc
+const CATEGORIES = ['gallery', 'leader', 'other'];
 
 export default function AdminPage() {
   const [token, setToken] = useState(localStorage.getItem('gpcm_admin_token') || '');
