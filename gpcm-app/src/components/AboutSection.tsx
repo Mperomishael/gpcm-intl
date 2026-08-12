@@ -8,7 +8,7 @@ export default function AboutSection() {
         <div className="text-center mb-10 sm:mb-14 md:mb-16">
           <div className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-4">
             <i className="fa-solid fa-church" />
-            ABOUT GPCM INT'L
+            ABOUT GPCM INT&apos;L
           </div>
           <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter text-[#321C04] leading-tight">
             A Place of Worship,<br className="hidden xs:block" />
@@ -16,7 +16,30 @@ export default function AboutSection() {
           </h2>
         </div>
 
-        {/* Value Cards – single column on phones, 2/3 on larger */}
+        {/* About the ministry – narrative */}
+        <div className="max-w-3xl mx-auto mb-12 sm:mb-16 text-center sm:text-left">
+          <h3 className="font-serif text-2xl sm:text-3xl font-semibold text-[#321C04] mb-4">
+            About the Ministry
+          </h3>
+          <div className="space-y-4 text-sm sm:text-base text-[#321C04]/90 leading-relaxed">
+            <p>
+              Glowing Palace of Christian Ministry International (GPCM INT&apos;L) is a Spirit-filled family
+              gathered under the leadership of Apostle Bishop Dr. Ilaya O. Clement. We exist so that people
+              encounter Jesus, grow in faith, and carry His love into their homes and communities.
+            </p>
+            <p>
+              From our base in Ughelli, Delta State, we gather for joyful worship, sound teaching, and
+              practical care. Whether you are seeking Christ for the first time, needing prayer, or looking
+              for a place to serve, you are welcome here — as you are.
+            </p>
+            <p>
+              Our heart is simple: souls saved, lives changed, and communities touched by the Gospel.
+              Every service, outreach, and discipleship moment points back to that calling.
+            </p>
+          </div>
+        </div>
+
+        {/* Value Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 md:gap-8">
           <div className="card-hover bg-[#FFF9F2] border border-[#D9C4AA] rounded-2xl sm:rounded-3xl overflow-hidden group">
             <div
@@ -25,7 +48,9 @@ export default function AboutSection() {
             />
             <div className="p-5 sm:p-6 md:p-8">
               <h3 className="font-serif text-2xl sm:text-3xl font-semibold mb-2 sm:mb-3 text-[#321C04]">Worship</h3>
-              <p className="text-sm sm:text-base text-[#321C04]/80">Honoring God with joy and reverence in all that we do.</p>
+              <p className="text-sm sm:text-base text-[#321C04]/80">
+                We honour God with glad hearts — in song, in the Word, and in everyday obedience.
+              </p>
               <div className="mt-5 sm:mt-8 pt-4 sm:pt-6 border-t border-[#D9C4AA] text-xs italic text-[#321C04]/60">
                 &quot;Serve the Lord with gladness...&quot;
               </div>
@@ -40,7 +65,9 @@ export default function AboutSection() {
             />
             <div className="p-5 sm:p-6 md:p-8">
               <h3 className="font-serif text-2xl sm:text-3xl font-semibold mb-2 sm:mb-3 text-[#321C04]">Growth</h3>
-              <p className="text-sm sm:text-base text-[#321C04]/80">Pursuing holistic development in spirit, mind, and body.</p>
+              <p className="text-sm sm:text-base text-[#321C04]/80">
+                Spirit, mind, and body — we pursue whole-life maturity so believers stand strong in every season.
+              </p>
             </div>
           </div>
 
@@ -51,7 +78,9 @@ export default function AboutSection() {
             />
             <div className="p-5 sm:p-6 md:p-8">
               <h3 className="font-serif text-2xl sm:text-3xl font-semibold mb-2 sm:mb-3 text-[#321C04]">Discipleship</h3>
-              <p className="text-sm sm:text-base text-[#321C04]/80">Equipping believers to serve in God&apos;s Kingdom.</p>
+              <p className="text-sm sm:text-base text-[#321C04]/80">
+                We equip the saints to serve, lead, and multiply — so the Kingdom advances beyond our walls.
+              </p>
             </div>
           </div>
         </div>
@@ -74,7 +103,8 @@ export default function AboutSection() {
           <div className="bg-[#FFF9F2] border border-[#D9C4AA] p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl">
             <h3 className="font-serif text-2xl sm:text-3xl md:text-4xl mb-4 sm:mb-6 text-[#321C04]">Our Mission</h3>
             <p className="text-base sm:text-lg leading-relaxed text-[#321C04]/90">
-              To worship joyfully, equip the saints, proclaim the Gospel, and demonstrate Christ&apos;s love.
+              To worship joyfully, equip the saints, proclaim the Gospel, and demonstrate Christ&apos;s love
+              in practical ways — starting in Ughelli and reaching as far as God leads.
             </p>
           </div>
         </div>
