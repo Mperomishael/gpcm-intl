@@ -38,7 +38,7 @@ export default function Navbar({ onOpenLiveModal }: NavbarProps) {
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-gradient-to-br from-violet-600/80 to-amber-500/80 shadow-sm">
               <img
-                src="/logo.png"
+                src="/logo.webp"
                 alt="GPCM Logo"
                 className="w-9 h-9 object-contain"
                 onError={(e) => {
