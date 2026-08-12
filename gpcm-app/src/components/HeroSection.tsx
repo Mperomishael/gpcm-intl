@@ -11,10 +11,13 @@ const MESSAGES = [
   },
 ];
 
+const MIN_LOADER_MS = 4500; // 4–5 seconds professional mask while video loads
+
 export default function HeroSection() {
   const [videoReady, setVideoReady] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const loadStartRef = useRef<number>(Date.now());
 
   // animation state
   const [msgIndex, setMsgIndex] = useState(0);
@@ -22,27 +25,46 @@ export default function HeroSection() {
   const [showSubtitle, setShowSubtitle] = useState(false);
   const [phase, setPhase] = useState<'typing' | 'holding' | 'exiting'>('typing');
 
-  // ---------- video ready ----------
+  // ---------- video ready + minimum loader duration ----------
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    loadStartRef.current = Date.now();
+
+    const hideLoader = () => {
+      const elapsed = Date.now() - loadStartRef.current;
+      const remaining = Math.max(0, MIN_LOADER_MS - elapsed);
+      setTimeout(() => {
+        setShowLoader(false);
+      }, remaining);
+    };
+
     const handleCanPlay = () => {
       setVideoReady(true);
-      setTimeout(() => setShowLoader(false), 400);
+      hideLoader();
     };
 
     if (video.readyState >= 3) {
       handleCanPlay();
     } else {
       video.addEventListener('canplay', handleCanPlay);
+      // safety: force hide after max wait even if video never fires
+      const safety = setTimeout(() => {
+        setVideoReady(true);
+        hideLoader();
+      }, 12000);
+      return () => {
+        video.removeEventListener('canplay', handleCanPlay);
+        clearTimeout(safety);
+      };
     }
     return () => video.removeEventListener('canplay', handleCanPlay);
   }, []);
 
   // ---------- typewriter + cycle ----------
   useEffect(() => {
-    if (!videoReady) return;
+    if (!videoReady || showLoader) return;
 
     const current = MESSAGES[msgIndex];
     let charIndex = 0;
@@ -59,7 +81,6 @@ export default function HeroSection() {
         setTypedText(current.title.slice(0, charIndex));
         charIndex += 1;
 
-        // slight pause after spaces and punctuation for a natural feel
         const lastChar = current.title[charIndex - 2];
         const delay =
           lastChar === ' ' ? 120 :
@@ -68,16 +89,13 @@ export default function HeroSection() {
 
         typingTimer = setTimeout(typeNext, delay);
       } else {
-        // finished typing → show subtitle
         setShowSubtitle(true);
         setPhase('holding');
 
-        // hold the full message, then exit
         holdTimer = setTimeout(() => {
           setPhase('exiting');
           setShowSubtitle(false);
 
-          // after exit animation, move to next message
           exitTimer = setTimeout(() => {
             setMsgIndex((prev) => (prev + 1) % MESSAGES.length);
           }, 700);
@@ -85,7 +103,6 @@ export default function HeroSection() {
       }
     };
 
-    // small delay before starting to type
     typingTimer = setTimeout(typeNext, 500);
 
     return () => {
@@ -93,27 +110,32 @@ export default function HeroSection() {
       clearTimeout(holdTimer);
       clearTimeout(exitTimer);
     };
-  }, [msgIndex, videoReady]);
+  }, [msgIndex, videoReady, showLoader]);
 
   const isExiting = phase === 'exiting';
 
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14"
+      className="relative min-h-[100svh] min-h-screen flex items-center justify-center overflow-hidden pt-14"
     >
-      {/* ===== LOADER ===== */}
+      {/* ===== SKELETAL LOADER – shiny blinds (4–5s) ===== */}
       {showLoader && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-amber-400 opacity-80 animate-pulse" />
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950 overflow-hidden">
+          {/* Full-screen shimmer blinds */}
+          <div className="absolute inset-0 hero-skeleton-blinds" aria-hidden="true" />
+
+          {/* Center content */}
+          <div className="relative z-10 flex flex-col items-center px-6">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-violet-600/40 to-amber-500/40 border border-white/10 flex items-center justify-center mb-6 shadow-2xl">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-violet-500 to-amber-400 opacity-90 animate-pulse" />
             </div>
+            <div className="h-3 w-48 sm:w-56 rounded-full skeleton-preload-dark mb-3" />
+            <div className="h-2.5 w-32 sm:w-40 rounded-full skeleton-preload-dark opacity-70" />
+            <p className="mt-8 text-white/50 text-xs sm:text-sm tracking-[0.25em] uppercase font-medium">
+              Preparing experience
+            </p>
           </div>
-          <p className="mt-6 text-white/70 text-sm tracking-widest uppercase font-medium">
-            Loading…
-          </p>
         </div>
       )}
 
@@ -126,10 +148,9 @@ export default function HeroSection() {
         playsInline
         preload="auto"
         className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700
-          ${videoReady ? 'opacity-100' : 'opacity-0'}
+          ${videoReady && !showLoader ? 'opacity-100' : 'opacity-0'}
           hero-video`}
       >
-        {/* your actual file */}
         <source src="/lv_0_20260809121737.webm" type="video/webm" />
         Your browser does not support the video tag.
       </video>
@@ -139,25 +160,24 @@ export default function HeroSection() {
 
       {/* ===== CONTENT ===== */}
       <div
-        className={`relative z-20 max-w-5xl mx-auto px-6 text-center text-white transition-all duration-700
-          ${videoReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+        className={`relative z-20 max-w-5xl mx-auto px-4 sm:px-6 text-center text-white transition-all duration-700
+          ${videoReady && !showLoader ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
       >
         <div
-          className={`space-y-5 transition-all duration-700 ease-out
+          className={`space-y-4 sm:space-y-5 transition-all duration-700 ease-out
             ${isExiting ? 'opacity-0 -translate-y-6 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'}`}
         >
-          {/* Typewriter title */}
-          <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl font-bold leading-none tracking-tighter drop-shadow-lg min-h-[1.15em]">
+          {/* Typewriter title – responsive sizing for all phones */}
+          <h1 className="font-serif text-[1.85rem] xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.15] tracking-tighter drop-shadow-lg min-h-[1.2em] px-1">
             {typedText}
-            {/* blinking cursor while typing */}
             {phase === 'typing' && (
-              <span className="inline-block w-[3px] h-[0.85em] ml-1 bg-amber-300 align-middle animate-pulse" />
+              <span className="inline-block w-[2.5px] sm:w-[3px] h-[0.8em] ml-1 bg-amber-300 align-middle animate-pulse" />
             )}
           </h1>
 
-          {/* Subtitle – fades in after typing finishes */}
+          {/* Subtitle */}
           <p
-            className={`max-w-xl mx-auto text-xl sm:text-2xl text-white/95 drop-shadow-md transition-all duration-700
+            className={`max-w-xl mx-auto text-base sm:text-xl md:text-2xl text-white/95 drop-shadow-md transition-all duration-700 px-2
               ${showSubtitle && !isExiting
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-3'}`}
@@ -166,25 +186,25 @@ export default function HeroSection() {
           </p>
         </div>
 
-        {/* Buttons – always visible once video is ready */}
+        {/* Buttons – stack cleanly on small phones */}
         <div
-          className={`flex flex-col sm:flex-row gap-4 justify-center mt-10 transition-opacity duration-700
-            ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+          className={`flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-8 sm:mt-10 transition-opacity duration-700 px-2
+            ${videoReady && !showLoader ? 'opacity-100' : 'opacity-0'}`}
         >
           <button
             onClick={() =>
               document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })
             }
-            className="bg-white text-violet-700 hover:bg-white/90 px-9 py-3.5 rounded-3xl font-semibold text-base sm:text-lg inline-flex items-center justify-center gap-3 transition-all shadow-lg"
+            className="bg-white text-violet-700 hover:bg-white/90 active:scale-[0.98] px-6 sm:px-9 py-3 sm:py-3.5 rounded-2xl sm:rounded-3xl font-semibold text-sm sm:text-base md:text-lg inline-flex items-center justify-center gap-2.5 sm:gap-3 transition-all shadow-lg w-full sm:w-auto"
           >
-            <i className="fa-solid fa-play text-sm" />
+            <i className="fa-solid fa-play text-xs sm:text-sm" />
             Join Live Service
           </button>
           <button
             onClick={() =>
               document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })
             }
-            className="border-2 border-white/80 hover:bg-white/10 px-9 py-3.5 rounded-3xl font-semibold text-base sm:text-lg transition-all"
+            className="border-2 border-white/80 hover:bg-white/10 active:scale-[0.98] px-6 sm:px-9 py-3 sm:py-3.5 rounded-2xl sm:rounded-3xl font-semibold text-sm sm:text-base md:text-lg transition-all w-full sm:w-auto"
           >
             Discover More
           </button>

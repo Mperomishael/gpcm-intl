@@ -15,12 +15,12 @@ export default function ContactSection() {
   };
 
   return (
-    <section id="contact" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid lg:grid-cols-2 gap-16">
+    <section id="contact" className="py-16 sm:py-20 md:py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="grid lg:grid-cols-2 gap-10 sm:gap-12 md:gap-16">
           {/* Form */}
           <div>
-            <h2 className="font-serif text-4xl md:text-5xl font-bold mb-10 text-zinc-900">
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8 md:mb-10 text-zinc-900">
               Get In Touch
             </h2>
             <div className="space-y-6">
@@ -30,14 +30,14 @@ export default function ContactSection() {
                   placeholder="Your Name"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="bg-zinc-100 border-0 focus:ring-2 focus:ring-violet-400 rounded-2xl px-7 py-5 outline-none w-full"
+                  className="bg-zinc-100 border-0 focus:ring-2 focus:ring-violet-400 rounded-2xl px-4 sm:px-6 md:px-7 py-3.5 sm:py-4 md:py-5 outline-none w-full"
                 />
                 <input 
                   type="email" 
                   placeholder="Email Address"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="bg-zinc-100 border-0 focus:ring-2 focus:ring-violet-400 rounded-2xl px-7 py-5 outline-none w-full"
+                  className="bg-zinc-100 border-0 focus:ring-2 focus:ring-violet-400 rounded-2xl px-4 sm:px-6 md:px-7 py-3.5 sm:py-4 md:py-5 outline-none w-full"
                 />
               </div>
               <input 
@@ -45,14 +45,14 @@ export default function ContactSection() {
                 placeholder="Phone Number"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                className="w-full bg-zinc-100 border-0 focus:ring-2 focus:ring-violet-400 rounded-2xl px-7 py-5 outline-none"
+                className="w-full bg-zinc-100 border-0 focus:ring-2 focus:ring-violet-400 rounded-2xl px-4 sm:px-6 md:px-7 py-3.5 sm:py-4 md:py-5 outline-none"
               />
               <textarea 
                 placeholder="Your Message or Prayer Request..."
                 rows={6}
                 value={formData.message}
                 onChange={(e) => setFormData({...formData, message: e.target.value})}
-                className="w-full bg-zinc-100 border-0 focus:ring-2 focus:ring-violet-400 rounded-3xl px-7 py-5 outline-none resize-none"
+                className="w-full bg-zinc-100 border-0 focus:ring-2 focus:ring-violet-400 rounded-3xl px-4 sm:px-6 md:px-7 py-3.5 sm:py-4 md:py-5 outline-none resize-none"
               />
               <button 
                 onClick={handleSubmit}
@@ -108,7 +108,7 @@ export default function ContactSection() {
               </p>
               <a 
                 href="tel:+2348069390490"
-                className="inline-flex items-center gap-3 bg-white text-zinc-900 px-6 py-4 rounded-2xl font-semibold hover:bg-amber-300 transition-colors"
+                className="inline-flex items-center gap-3 bg-white text-zinc-900 px-4 sm:px-6 py-4 rounded-2xl font-semibold hover:bg-amber-300 transition-colors"
               >
                 <Phone size={20} />
                 Call Bishop
