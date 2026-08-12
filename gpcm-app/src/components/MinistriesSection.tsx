@@ -13,7 +13,7 @@ const ministries = [
     icon: Users,
     title: "Growth",
     description: "Pursuing holistic development in spirit, mind, and body.",
-    image: "/images/growth.webp"
+   // image: "/images/growth.webp"
   },
   {
     icon: BookOpen,
