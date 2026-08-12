@@ -19,7 +19,6 @@ export default function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const loadStartRef = useRef<number>(Date.now());
 
-  // animation state
   const [msgIndex, setMsgIndex] = useState(0);
   const [typedText, setTypedText] = useState('');
   const [showSubtitle, setShowSubtitle] = useState(false);
@@ -35,9 +34,7 @@ export default function HeroSection() {
     const hideLoader = () => {
       const elapsed = Date.now() - loadStartRef.current;
       const remaining = Math.max(0, MIN_LOADER_MS - elapsed);
-      setTimeout(() => {
-        setShowLoader(false);
-      }, remaining);
+      setTimeout(() => setShowLoader(false), remaining);
     };
 
     const handleCanPlay = () => {
@@ -49,7 +46,6 @@ export default function HeroSection() {
       handleCanPlay();
     } else {
       video.addEventListener('canplay', handleCanPlay);
-      // safety: force hide after max wait even if video never fires
       const safety = setTimeout(() => {
         setVideoReady(true);
         hideLoader();
@@ -119,24 +115,13 @@ export default function HeroSection() {
       id="home"
       className="relative min-h-[100svh] min-h-screen flex items-center justify-center overflow-hidden pt-14"
     >
-      {/* ===== SKELETAL LOADER – shiny blinds (4–5s) ===== */}
+      {/* ===== PURE SKELETAL LOADER – full-bleed shiny blinds (4–5s) ===== */}
       {showLoader && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950 overflow-hidden">
-          {/* Full-screen shimmer blinds */}
-          <div className="absolute inset-0 hero-skeleton-blinds" aria-hidden="true" />
-
-          {/* Center content */}
-          <div className="relative z-10 flex flex-col items-center px-6">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-violet-600/40 to-amber-500/40 border border-white/10 flex items-center justify-center mb-6 shadow-2xl">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-violet-500 to-amber-400 opacity-90 animate-pulse" />
-            </div>
-            <div className="h-3 w-48 sm:w-56 rounded-full skeleton-preload-dark mb-3" />
-            <div className="h-2.5 w-32 sm:w-40 rounded-full skeleton-preload-dark opacity-70" />
-            <p className="mt-8 text-white/50 text-xs sm:text-sm tracking-[0.25em] uppercase font-medium">
-              Preparing experience
-            </p>
-          </div>
-        </div>
+        <div
+          className="absolute inset-0 z-30 hero-skeleton-blinds"
+          aria-hidden="true"
+          aria-busy="true"
+        />
       )}
 
       {/* ===== VIDEO ===== */}
@@ -167,7 +152,6 @@ export default function HeroSection() {
           className={`space-y-4 sm:space-y-5 transition-all duration-700 ease-out
             ${isExiting ? 'opacity-0 -translate-y-6 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'}`}
         >
-          {/* Typewriter title – responsive sizing for all phones */}
           <h1 className="font-serif text-[1.85rem] xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.15] tracking-tighter drop-shadow-lg min-h-[1.2em] px-1">
             {typedText}
             {phase === 'typing' && (
@@ -175,7 +159,6 @@ export default function HeroSection() {
             )}
           </h1>
 
-          {/* Subtitle */}
           <p
             className={`max-w-xl mx-auto text-base sm:text-xl md:text-2xl text-white/95 drop-shadow-md transition-all duration-700 px-2
               ${showSubtitle && !isExiting
@@ -186,7 +169,6 @@ export default function HeroSection() {
           </p>
         </div>
 
-        {/* Buttons – stack cleanly on small phones */}
         <div
           className={`flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-8 sm:mt-10 transition-opacity duration-700 px-2
             ${videoReady && !showLoader ? 'opacity-100' : 'opacity-0'}`}
