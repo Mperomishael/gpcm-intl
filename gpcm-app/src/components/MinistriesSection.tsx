@@ -5,7 +5,7 @@ const ministries = [
     icon: Church,
     title: "Worship",
     description: "Honoring God with joy and reverence in all that we do.",
-    image: "/Honoring-God.webp",
+    image: "/images/Honoring-God.webp",
     verse: "Serve the Lord with gladness...",
     ref: "Psalm 100:2"
   },
