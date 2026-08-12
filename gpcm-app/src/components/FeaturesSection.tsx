@@ -1,17 +1,26 @@
 import React from 'react';
+import { useMedia } from '../hooks/useMedia';
 
 export default function FeaturesSection() {
+  const { media, loading } = useMedia('leader');
+  // First visible leader image (or fallback)
+  const leaderImage = media.find((m) => m.type === 'image')?.url ?? '/images/worship.webp';
+
   return (
     <section className="py-14 sm:py-16 md:py-20 bg-zinc-900 text-white relative z-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
 
           <div className="md:col-span-5">
-            <img
-              src="/images/worship.webp"
-              alt="Apostle Bishop Dr. Ilaya O. Clement"
-              className="rounded-2xl sm:rounded-3xl shadow-2xl w-full object-cover border border-zinc-800 aspect-[4/5] sm:aspect-auto max-h-[420px] md:max-h-none mx-auto"
-            />
+            {loading ? (
+              <div className="rounded-2xl sm:rounded-3xl w-full aspect-[4/5] sm:aspect-[3/4] skeleton-preload-dark border border-zinc-800" />
+            ) : (
+              <img
+                src={leaderImage}
+                alt="Apostle Bishop Dr. Ilaya O. Clement"
+                className="rounded-2xl sm:rounded-3xl shadow-2xl w-full object-cover border border-zinc-800 aspect-[4/5] sm:aspect-auto max-h-[420px] md:max-h-none mx-auto"
+              />
+            )}
           </div>
 
           <div className="md:col-span-7 text-center md:text-left">
