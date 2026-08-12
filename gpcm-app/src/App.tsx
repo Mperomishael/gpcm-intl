@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import AboutSection from './components/AboutSection';
 import FeaturesSection from './components/FeaturesSection';
+import MapSection from './components/MapSection';
 import MinistriesSection from './components/MinistriesSection';
 import GallerySection from './components/GallerySection';
 import GiveSection from './components/GiveSection';
@@ -29,6 +30,7 @@ function App() {
         <HeroSection />
         <AboutSection />
         <FeaturesSection />
+        <MapSection />
         <MinistriesSection />
         <GallerySection />
         <GiveSection />
