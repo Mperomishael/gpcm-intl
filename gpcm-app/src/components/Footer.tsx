@@ -16,7 +16,7 @@ const TikTokIcon = ({ size = 20, className = '' }: { size?: number; className?: 
 export default function Footer() {
   return (
     <footer className="bg-zinc-950 text-zinc-400">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 md:pt-20 pb-8 sm:pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-12 md:pt-16 pb-6 sm:pb-10">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
           <div>
             <div className="flex items-center gap-3 text-white mb-6">
