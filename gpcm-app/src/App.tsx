@@ -4,6 +4,8 @@ import HeroSection from './components/HeroSection';
 import AboutSection from './components/AboutSection';
 import FeaturesSection from './components/FeaturesSection';
 import MapSection from './components/MapSection';
+import MediaSection from './components/MediaSection';
+import WhatsAppGroupSection from './components/WhatsAppGroupSection';
 import MinistriesSection from './components/MinistriesSection';
 import GallerySection from './components/GallerySection';
 import GiveSection from './components/GiveSection';
@@ -33,6 +35,8 @@ function App() {
         <MapSection />
         <MinistriesSection />
         <GallerySection />
+        <MediaSection />
+        <WhatsAppGroupSection />
         <GiveSection />
         <ContactSection />
       </main>
