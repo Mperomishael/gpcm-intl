@@ -56,7 +56,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 80 * 1024 * 1024 }, // 80 MB
   fileFilter: (_, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.mp4', '.webm'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.mp4', '.webm', '.mp3', '.m4a', '.wav'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
     else cb(new Error('Only JPG, PNG, MP4, WEBM allowed'));
@@ -101,7 +101,7 @@ app.post('/api/admin/upload', auth, upload.single('file'), (req, res) => {
     filename: req.file.filename,
     originalName: req.file.originalname,
     url: `/uploads/${req.file.filename}`,
-    type: req.file.mimetype.startsWith('video') ? 'video' : 'image',
+    type: req.file.mimetype.startsWith('video') ? 'video' : req.file.mimetype.startsWith('audio') ? 'audio' : 'image',
     category: req.body.category || 'gallery', // gallery | hero | about | leader | other
     order: media.length,
     hidden: false,
