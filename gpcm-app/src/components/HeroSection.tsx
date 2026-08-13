@@ -105,3 +105,115 @@ export default function HeroSection() {
       clearTimeout(exitTimer);
     };
   }, [msgIndex, videoReady, showLoader]);
+
+  const isExiting = phase === 'exiting';
+
+  return (
+    <section
+      id="home"
+      className="relative min-h-[100svh] min-h-screen flex items-center justify-center overflow-hidden pt-14"
+    >
+      {showLoader && (
+        <div
+          className="absolute inset-0 z-30 bg-zinc-950 flex flex-col overflow-hidden"
+          aria-hidden="true"
+          aria-busy="true"
+        >
+          <div className="h-14 border-b border-white/5 flex items-center px-4 sm:px-6 gap-3 shrink-0">
+            <div className="w-9 h-9 rounded-xl skeleton-preload-dark shrink-0" />
+            <div className="h-3 w-24 rounded-full skeleton-preload-dark" />
+            <div className="flex-1" />
+            <div className="hidden sm:flex gap-3">
+              <div className="h-2.5 w-12 rounded-full skeleton-preload-dark" />
+              <div className="h-2.5 w-12 rounded-full skeleton-preload-dark" />
+              <div className="h-2.5 w-14 rounded-full skeleton-preload-dark" />
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4 sm:gap-5">
+            <div className="h-8 sm:h-10 w-[85%] max-w-md rounded-lg skeleton-preload-dark" />
+            <div className="h-8 sm:h-10 w-[65%] max-w-sm rounded-lg skeleton-preload-dark" />
+            <div className="h-3 w-40 sm:w-48 rounded-full skeleton-preload-dark mt-2 opacity-70" />
+            <div className="flex flex-col sm:flex-row gap-3 mt-6 w-full max-w-xs sm:max-w-md">
+              <div className="h-11 flex-1 rounded-2xl skeleton-preload-dark" />
+              <div className="h-11 flex-1 rounded-2xl skeleton-preload-dark opacity-60" />
+            </div>
+          </div>
+
+          <div className="shrink-0 px-4 pb-6 space-y-3 opacity-40">
+            <div className="h-3 w-28 mx-auto rounded-full skeleton-preload-dark" />
+            <div className="h-4 w-48 mx-auto rounded-full skeleton-preload-dark" />
+          </div>
+        </div>
+      )}
+
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700
+          ${videoReady && !showLoader ? 'opacity-100' : 'opacity-0'}
+          hero-video`}
+      >
+        <source src="/lv_0_20260809121737.webm" type="video/webm" />
+        Your browser does not support the video tag.
+      </video>
+
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/25 to-black/60 z-10" />
+
+      <div
+        className={`relative z-20 max-w-5xl mx-auto px-4 sm:px-6 text-center text-white transition-all duration-700
+          ${videoReady && !showLoader ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+      >
+        <div
+          className={`space-y-4 sm:space-y-5 transition-all duration-700 ease-out
+            ${isExiting ? 'opacity-0 -translate-y-6 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'}`}
+        >
+          <h1 className="font-serif text-[1.75rem] sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.15] tracking-tighter drop-shadow-lg min-h-[1.2em] px-1">
+            {typedText}
+            {phase === 'typing' && (
+              <span className="inline-block w-[2.5px] sm:w-[3px] h-[0.8em] ml-1 bg-amber-300 align-middle animate-pulse" />
+            )}
+          </h1>
+
+          <p
+            className={`max-w-xl mx-auto text-sm sm:text-lg md:text-xl text-white/95 drop-shadow-md transition-all duration-700 px-2
+              ${showSubtitle && !isExiting
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-3'}`}
+          >
+            {MESSAGES[msgIndex].subtitle}
+          </p>
+        </div>
+
+        <div
+          className={`flex flex-col sm:flex-row gap-3 justify-center mt-7 sm:mt-10 transition-opacity duration-700 px-2
+            ${videoReady && !showLoader ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })
+            }
+            className="bg-white text-violet-700 hover:bg-white/90 active:scale-[0.98] px-5 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 transition-all shadow-lg w-full sm:w-auto"
+          >
+            <i className="fa-solid fa-play text-xs" />
+            Join Live Service
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })
+            }
+            className="border-2 border-white/80 hover:bg-white/10 active:scale-[0.98] px-5 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-semibold text-sm sm:text-base transition-all w-full sm:w-auto"
+          >
+            Discover More
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
