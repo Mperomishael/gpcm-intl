@@ -35,14 +35,13 @@ export default function Navbar({ onOpenLiveModal }: NavbarProps) {
         <div className="flex items-center justify-between h-14">
 
           {/* Logo – from /public */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-gradient-to-br from-violet-600/80 to-amber-500/80 shadow-sm">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
               <img
                 src="/logo.webp"
                 alt="GPCM Logo"
-                className="w-9 h-9 object-contain"
+                className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
                 onError={(e) => {
-                  // fallback if logo not yet added
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
