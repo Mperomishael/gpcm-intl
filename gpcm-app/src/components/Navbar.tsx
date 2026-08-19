@@ -35,6 +35,7 @@ export default function Navbar({ onOpenLiveModal }: NavbarProps) {
     { path: '/General-Overseer', label: 'Overseer', id: null },
     { path: '/ministries', label: 'Ministries', id: 'ministries' },
     { path: '/contact', label: 'Contact', id: 'contact' },
+    { path: '/gallery', label: 'Gallery', id: null },
   ];
 
   return (
