@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
   onOpenLiveModal: () => void;
@@ -7,6 +8,9 @@ interface NavbarProps {
 export default function Navbar({ onOpenLiveModal }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isHome = location.pathname === '/';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -18,8 +22,20 @@ export default function Navbar({ onOpenLiveModal }: NavbarProps) {
 
   const smoothScrollTo = (sectionId: string) => {
     setIsOpen(false);
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+    if (isHome) {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate(`/#${sectionId}`);
+    }
   };
+
+  const navLinks = [
+    { path: '/', label: 'Home', id: 'home' },
+    { path: '/about', label: 'About', id: 'about' },
+    { path: '/General-Overseer', label: 'Overseer', id: null },
+    { path: '/ministries', label: 'Ministries', id: 'ministries' },
+    { path: '/contact', label: 'Contact', id: 'contact' },
+  ];
 
   return (
     <nav
@@ -31,11 +47,8 @@ export default function Navbar({ onOpenLiveModal }: NavbarProps) {
         }`}
     >
       <div className="max-w-7xl mx-auto px-5 sm:px-6">
-        {/* thinner bar */}
         <div className="flex items-center justify-between h-14">
-
-          {/* Logo – from /public */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3">
             <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
               <img
                 src="/logo.webp"
@@ -54,52 +67,56 @@ export default function Navbar({ onOpenLiveModal }: NavbarProps) {
                 Glowing Palace of Christian Ministry
               </div>
             </div>
-          </div>
+          </Link>
 
-          {/* Desktop Menu */}
           <div className="hidden lg:flex items-center gap-8 text-sm font-medium">
-            {[
-              { id: 'home', label: 'Home' },
-              { id: 'about', label: 'About' },
-              { id: 'ministries', label: 'Ministries' },
-              { id: 'gallery', label: 'Gallery' },
-              { id: 'contact', label: 'Contact' },
-            ].map(({ id, label }) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  smoothScrollTo(id);
-                }}
-                className="nav-link text-zinc-800 hover:text-violet-600 transition-colors"
-              >
-                {label}
-              </a>
+            {navLinks.map(({ path, label, id }) => (
+              path === '/' && isHome && id ? (
+                <a
+                  key={label}
+                  href={`#${id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    smoothScrollTo(id);
+                  }}
+                  className="nav-link text-zinc-800 hover:text-violet-600 transition-colors"
+                >
+                  {label}
+                </a>
+              ) : (
+                <Link
+                  key={label}
+                  to={path}
+                  className={`nav-link transition-colors ${
+                    location.pathname === path
+                      ? 'text-violet-600 font-semibold'
+                      : 'text-zinc-800 hover:text-violet-600'
+                  }`}
+                >
+                  {label}
+                </Link>
+              )
             ))}
           </div>
 
           <div className="hidden lg:flex items-center gap-3">
-            <button
-              onClick={onOpenLiveModal}
+            <Link
+              to="/live"
               className="px-5 py-1.5 text-sm font-semibold
                          bg-white/35 backdrop-blur-md border border-white/40
                          hover:bg-white/55 rounded-full transition-all text-zinc-800"
             >
               Watch Live
-            </button>
-            <button
-              onClick={() =>
-                document.getElementById('give-section')?.scrollIntoView({ behavior: 'smooth' })
-              }
+            </Link>
+            <Link
+              to="/give"
               className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-1.5 text-sm font-semibold rounded-full transition-all flex items-center gap-2 shadow-md"
             >
               <i className="fa-solid fa-heart text-xs" />
               Give
-            </button>
+            </Link>
           </div>
 
-          {/* Mobile Hamburger */}
           <button
             onClick={toggleMobileMenu}
             className="lg:hidden w-9 h-9 flex items-center justify-center text-xl text-zinc-800"
@@ -110,53 +127,41 @@ export default function Navbar({ onOpenLiveModal }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <div
         className={`lg:hidden overflow-hidden transition-all duration-300 ease-out ${
-          isOpen ? 'max-h-[420px] opacity-100' : 'max-h-0 opacity-0'
+          isOpen ? 'max-h-[480px] opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
         <div className="bg-white/50 backdrop-blur-xl border-t border-white/25 py-5 px-5">
           <div className="flex flex-col gap-5 text-base">
-            {[
-              { id: 'home', label: 'Home' },
-              { id: 'about', label: 'About Us' },
-              { id: 'ministries', label: 'Ministries' },
-              { id: 'gallery', label: 'Gallery' },
-              { id: 'contact', label: 'Contact' },
-            ].map(({ id, label }) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  smoothScrollTo(id);
-                }}
-                className="font-medium text-zinc-900"
+            {navLinks.map(({ path, label }) => (
+              <Link
+                key={label}
+                to={path}
+                onClick={() => setIsOpen(false)}
+                className={`font-medium ${
+                  location.pathname === path ? 'text-violet-600' : 'text-zinc-900'
+                }`}
               >
                 {label}
-              </a>
+              </Link>
             ))}
 
             <div className="pt-4 border-t border-zinc-200/50 flex flex-col gap-2.5">
-              <button
-                onClick={() => {
-                  onOpenLiveModal();
-                  setIsOpen(false);
-                }}
-                className="w-full py-3 bg-white/50 border border-white/50 rounded-2xl font-semibold text-zinc-800 text-sm"
+              <Link
+                to="/live"
+                onClick={() => setIsOpen(false)}
+                className="w-full py-3 bg-white/50 border border-white/50 rounded-2xl font-semibold text-zinc-800 text-sm text-center"
               >
                 Watch Live
-              </button>
-              <button
-                onClick={() => {
-                  document.getElementById('give-section')?.scrollIntoView({ behavior: 'smooth' });
-                  setIsOpen(false);
-                }}
-                className="w-full py-3 bg-violet-600 text-white rounded-2xl font-semibold text-sm"
+              </Link>
+              <Link
+                to="/give"
+                onClick={() => setIsOpen(false)}
+                className="w-full py-3 bg-violet-600 text-white rounded-2xl font-semibold text-sm text-center"
               >
                 Support Ministry
-              </button>
+              </Link>
             </div>
           </div>
         </div>
