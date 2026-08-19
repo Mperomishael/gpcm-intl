@@ -10,6 +10,7 @@ import LivePage from './pages/live/LivePage.tsx';
 import MinistriesPage from './pages/ministries/MinistriesPage.tsx';
 import ContactPage from './pages/contact/ContactPage.tsx';
 import GivePage from './pages/give/GivePage.tsx';
+import GalleryPage from './pages/gallery/GalleryPage.tsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
