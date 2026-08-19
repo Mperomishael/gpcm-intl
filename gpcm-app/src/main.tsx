@@ -19,6 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/General-Overseer" element={<GeneralOverseerPage />} />
         <Route path="/live" element={<LivePage />} />
         <Route path="/ministries" element={<MinistriesPage />} />
