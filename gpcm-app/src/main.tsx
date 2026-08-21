@@ -15,11 +15,13 @@ import AudiosPage from './pages/audios/AudiosPage.tsx';
 import BooksPage from './pages/books/BooksPage.tsx';
 import BookReaderPage from './pages/books/BookReaderPage.tsx';
 import NotFoundPage from './pages/NotFoundPage.tsx';
+import ScrollToTop from './components/ScrollToTop.tsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/about" element={<AboutPage />} />
