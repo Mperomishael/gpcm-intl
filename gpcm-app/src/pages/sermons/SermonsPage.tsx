@@ -5,6 +5,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import WhatsAppFloat from '../../components/WhatsAppFloat';
 import { useMedia, formatSermonDate } from '../../hooks/useMedia';
+import { useScrollReveal, staggerDelay } from '../../hooks/useScrollReveal';
 
 function youtubeEmbedUrl(youtubeUrl?: string) {
   if (!youtubeUrl) return '';
@@ -15,6 +16,7 @@ function youtubeEmbedUrl(youtubeUrl?: string) {
 
 export default function SermonsPage() {
   const { media: videos, loading } = useMedia('sermon_video');
+  const reveal = useScrollReveal(videos.length || 6);
   const [playing, setPlaying] = useState<{ url: string; isYoutube: boolean; title?: string } | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
 
@@ -54,8 +56,8 @@ export default function SermonsPage() {
           ) : videos.length === 0 ? (
             <p className="text-zinc-500">No published videos yet.</p>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {videos.map((item) => {
+            <div ref={reveal.containerRef as React.RefObject<HTMLDivElement>} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {videos.map((item, idx) => {
                 const isYoutube = item.source === 'youtube';
                 const thumb = isYoutube ? item.thumbnailUrl : item.url;
                 return (
@@ -68,7 +70,8 @@ export default function SermonsPage() {
                         title: item.title || item.originalName,
                       })
                     }
-                    className="group rounded-2xl overflow-hidden border border-zinc-200 bg-white text-left hover:shadow-md transition-shadow"
+                    className={`group rounded-2xl overflow-hidden border border-zinc-200 bg-white text-left hover:shadow-md fall-item ${reveal.visible ? 'is-in' : 'is-out'}`}
+                    style={{ transitionDelay: `${staggerDelay(idx, reveal.visible, videos.length)}ms` }}
                   >
                     <div className="aspect-video bg-zinc-200 relative">
                       {isYoutube ? (
