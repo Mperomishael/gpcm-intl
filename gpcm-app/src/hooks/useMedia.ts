@@ -8,10 +8,14 @@ export interface MediaItem {
   url: string;
   type: 'image' | 'video' | 'audio';
   category: string;
+  source: 'upload' | 'youtube';
+  youtubeUrl?: string;
+  thumbnailUrl?: string;
+  downloadable: boolean;
+  status: 'pending' | 'published' | 'rejected';
   title?: string;
   description?: string;
   order: number;
-  hidden: boolean;
   createdAt: string;
   storagePath?: string;
 }
@@ -27,7 +31,7 @@ export function useMedia(category?: string) {
         let q = supabase
           .from('media')
           .select('*')
-          .eq('hidden', false)
+          .eq('status', 'published')
           .order('order', { ascending: true });
 
         if (category) q = q.eq('category', category);
