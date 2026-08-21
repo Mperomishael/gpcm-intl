@@ -70,6 +70,10 @@ export default async function handler(req, res) {
   const sermonDate = req.body.sermonDate || req.body.sermon_date || null;
   const title = req.body.title || null;
   const description = req.body.description || null;
+  const thumbnailUrl = req.body.thumbnailUrl || req.body.thumbnail_url || null;
+  const orderVal = req.body.order !== undefined && req.body.order !== ''
+    ? parseInt(req.body.order, 10)
+    : null;
 
   const { count } = await supabaseAdmin.from('media').select('*', { count: 'exact', head: true });
 
@@ -85,7 +89,8 @@ export default async function handler(req, res) {
     status: 'pending',
     title,
     description,
-    order: count ?? 0,
+    thumbnail_url: thumbnailUrl,
+    order: Number.isFinite(orderVal) ? orderVal : (count ?? 100),
   };
   if (sermonDate) insertRow.sermon_date = sermonDate;
   else if (type === 'video' || type === 'audio') {
