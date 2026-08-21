@@ -10,7 +10,7 @@ export default function GallerySection() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   return (
-    <section id="gallery" className="py-10 sm:py-14 md:py-16 bg-zinc-50 relative z-10">
+    <section id="gallery" className="py-10 sm:py-14 md:py-16 bg-zinc-50 relative z-20 -mt-1 rounded-t-[1.75rem] sm:rounded-t-[2.5rem] shadow-[0_-24px_48px_rgba(0,0,0,0.28),0_-8px_16px_rgba(0,0,0,0.12)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-5">
         <div className="text-center mb-7 sm:mb-10">
           <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-zinc-900 leading-snug">
