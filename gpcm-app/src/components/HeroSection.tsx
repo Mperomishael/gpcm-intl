@@ -13,7 +13,11 @@ const MESSAGES = [
 
 const MIN_LOADER_MS = 4500;
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  onOpenLiveModal?: () => void;
+}
+
+export default function HeroSection({ onOpenLiveModal }: HeroSectionProps) {
   const [videoReady, setVideoReady] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -190,29 +194,46 @@ export default function HeroSection() {
         </div>
 
         <div
-          className={`flex flex-col sm:flex-row gap-3 justify-center mt-7 sm:mt-10 transition-opacity duration-700 px-2
+          className={`flex flex-col sm:flex-row gap-3 justify-center items-center mt-7 sm:mt-10 transition-opacity duration-700 px-2
             ${videoReady && !showLoader ? 'opacity-100' : 'opacity-0'}`}
         >
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() =>
+                document.getElementById('media')?.scrollIntoView({ behavior: 'smooth' })
+              }
+              className="flex-1 sm:flex-none bg-white text-violet-700 hover:bg-white/90 active:scale-[0.98] px-5 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 transition-all shadow-lg"
+            >
+              <i className="fa-solid fa-play text-xs" />
+              Join Live Service
+            </button>
+            <button
+              type="button"
+              title="Open live stream card"
+              aria-label="Open live stream"
+              onClick={() => onOpenLiveModal?.()}
+              className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-2xl border-2 border-white/80 bg-white/15 hover:bg-white/25 text-white inline-flex items-center justify-center transition-all shadow-lg"
+            >
+              <i className="fa-solid fa-arrow-up-right-from-square text-sm" />
+            </button>
+          </div>
           <button
             type="button"
             onClick={() =>
-              document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })
-            }
-            className="bg-white text-violet-700 hover:bg-white/90 active:scale-[0.98] px-5 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 transition-all shadow-lg w-full sm:w-auto"
-          >
-            <i className="fa-solid fa-play text-xs" />
-            Join Live Service
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })
+              document.getElementById('community')?.scrollIntoView({ behavior: 'smooth' })
             }
             className="border-2 border-white/80 hover:bg-white/10 active:scale-[0.98] px-5 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-semibold text-sm sm:text-base transition-all w-full sm:w-auto"
           >
-            Discover More
+            Join Our Community
           </button>
         </div>
+        <p
+          className={`mt-3 text-[11px] sm:text-xs text-white/70 transition-opacity duration-700
+            ${videoReady && !showLoader ? 'opacity-100' : 'opacity-0'}`}
+        >
+          Sermons below · arrow opens live stream
+        </p>
       </div>
     </section>
   );
