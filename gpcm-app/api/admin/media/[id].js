@@ -1,19 +1,31 @@
 import { requireAdmin } from '../../_lib/auth.js';
 import { supabaseAdmin, mapMediaRow, MEDIA_BUCKET } from '../../_lib/supabaseAdmin.js';
 
+const PATCHABLE = {
+  category: 'category',
+  status: 'status',
+  order: 'order',
+  originalName: 'original_name',
+  title: 'title',
+  description: 'description',
+  youtubeUrl: 'youtube_url',
+  thumbnailUrl: 'thumbnail_url',
+  downloadable: 'downloadable',
+};
+
 export default async function handler(req, res) {
   if (!requireAdmin(req, res)) return;
 
   const { id } = req.query;
 
   if (req.method === 'PATCH') {
-    const allowed = ['category', 'order', 'hidden', 'originalName', 'title', 'description'];
-    const fieldMap = { originalName: 'original_name' };
     const updates = {};
-    for (const key of allowed) {
-      if (req.body?.[key] !== undefined) {
-        updates[fieldMap[key] || key] = req.body[key];
-      }
+    for (const [bodyKey, column] of Object.entries(PATCHABLE)) {
+      if (req.body?.[bodyKey] !== undefined) updates[column] = req.body[bodyKey];
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
     }
 
     const { data, error } = await supabaseAdmin
