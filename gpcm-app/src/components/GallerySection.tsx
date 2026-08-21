@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { X, ArrowRight } from 'lucide-react';
 import { useMedia } from '../hooks/useMedia';
+import { useScrollReveal, staggerDelay } from '../hooks/useScrollReveal';
 
 export default function GallerySection() {
-  const { media, loading } = useMedia('gallery');
+  const { media, loading } = useMedia('gallery', 4);
+  const reveal = useScrollReveal(media.length || 4);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   return (
@@ -13,32 +16,44 @@ export default function GallerySection() {
           <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-zinc-900 leading-snug">
             Moments in God&apos;s Presence
           </h2>
+          <p className="mt-2 text-sm text-zinc-500">A glimpse of fellowship, worship, and ministry life.</p>
         </div>
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
-            {[...Array(8)].map((_, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+            {[...Array(4)].map((_, i) => (
               <div key={i} className="aspect-square rounded-xl sm:rounded-2xl skeleton-preload" />
             ))}
           </div>
         ) : media.length === 0 ? (
           <p className="text-center text-zinc-500 text-xs sm:text-sm">No gallery images yet.</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
-            {media.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedImage(item.url)}
-                className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
+          <>
+            <div ref={reveal.containerRef as React.RefObject<HTMLDivElement>} className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+              {media.map((item, idx) => (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedImage(item.url)}
+                  className={`aspect-square rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group fall-item ${reveal.visible ? 'is-in' : 'is-out'}`}
+                  style={{ transitionDelay: `${staggerDelay(idx, reveal.visible, media.length)}ms` }}
+                >
+                  <img
+                    src={item.url}
+                    alt={item.title || item.originalName}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 text-center">
+              <Link
+                to="/gallery"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-700 hover:text-violet-900 transition-colors"
               >
-                <img
-                  src={item.url}
-                  alt={item.originalName}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
+                View more photos <ArrowRight size={14} />
+              </Link>
+            </div>
+          </>
         )}
       </div>
       {selectedImage && (
