@@ -1,10 +1,14 @@
 // src/pages/AdminPage.tsx
 import { useEffect, useRef, useState } from 'react';
 import {
-  Upload, Trash2, LogOut, Image as ImageIcon, Video, Headphones,
+  Upload, Trash2, Image as ImageIcon, Video, Headphones,
   UserSquare2, FolderOpen, Check, XCircle, Youtube, Film, Clock,
 } from 'lucide-react';
 import ImageCropModal from '../components/admin/ImageCropModal';
+import AdminLogin from '../components/admin/AdminLogin';
+import AdminNav from '../components/admin/AdminNav';
+import UploadProgressOverlay from '../components/admin/UploadProgressOverlay';
+import { useGlassFeedback } from '../components/admin/GlassFeedback';
 
 interface MediaItem {
   id: string;
@@ -37,19 +41,62 @@ const fmtDate = (iso: string) =>
   new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
 
 const STATUS_STYLES: Record<MediaItem['status'], string> = {
-  pending: 'bg-amber-100 text-amber-700 border-amber-200',
+  pending: 'bg-admin-gold/15 text-admin-goldHover border-admin-gold/30',
   published: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   rejected: 'bg-rose-100 text-rose-700 border-rose-200',
 };
 
+/** POST a FormData payload with real upload-progress events (fetch can't do this reliably). */
+function uploadWithProgress(
+  url: string,
+  form: FormData,
+  headers: Record<string, string>,
+  onProgress: (pct: number) => void
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(xhr.responseText ? JSON.parse(xhr.responseText) : null);
+        } catch {
+          resolve(null);
+        }
+      } else {
+        let message = 'Upload failed';
+        try {
+          message = JSON.parse(xhr.responseText)?.error || message;
+        } catch {
+          /* ignore */
+        }
+        reject(new Error(message));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(form);
+  });
+}
+
 export default function AdminPage() {
+  const { notify, confirmAction, FeedbackHost } = useGlassFeedback();
+
   const [token, setToken] = useState(localStorage.getItem('gpcm_admin_token') || '');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [tab, setTab] = useState<TabKey>('gallery');
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loadingList, setLoadingList] = useState(false);
+
+  // upload progress overlay state
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadPhase, setUploadPhase] = useState<'uploading' | 'processing' | 'done'>('uploading');
+  const [uploadFileName, setUploadFileName] = useState('');
 
   // image crop flow
   const [cropFile, setCropFile] = useState<File | null>(null);
@@ -122,19 +169,28 @@ export default function AdminPage() {
 
   const uploadFile = async (file: File | Blob, filename: string, category: string, extra?: Record<string, string>) => {
     setUploading(true);
+    setUploadProgress(0);
+    setUploadPhase('uploading');
+    setUploadFileName(filename);
+
     const form = new FormData();
     form.append('file', file, filename);
     form.append('category', category);
     if (extra) Object.entries(extra).forEach(([k, v]) => form.append(k, v));
 
-    const res = await fetch('/api/admin/upload', { method: 'POST', headers, body: form });
-    if (res.ok) {
+    try {
+      await uploadWithProgress('/api/admin/upload', form, headers, setUploadProgress);
+      setUploadPhase('processing');
       await fetchMedia(tab);
-    } else {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || 'Upload failed');
+      setUploadPhase('done');
+      notify('Uploaded! Tap “Publish” below to make it live on the site.', 'success');
+      await new Promise((r) => setTimeout(r, 850));
+    } catch (err: any) {
+      notify(err.message || 'Upload failed', 'error');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
-    setUploading(false);
   };
 
   const onCropConfirm = async (blob: Blob) => {
@@ -154,40 +210,50 @@ export default function AdminPage() {
 
   // ---------- video sermon: youtube link ----------
   const submitYoutube = async () => {
-    if (!ytUrl.trim()) return alert('Paste a YouTube link first');
+    if (!ytUrl.trim()) return notify('Paste a YouTube link first', 'error');
     setUploading(true);
+    setUploadPhase('uploading');
+    setUploadProgress(0);
+    setUploadFileName(ytTitle.trim() || 'YouTube video');
 
     let thumbnailUrl = ytThumbUrl.trim();
-    if (ytThumbFile) {
-      const form = new FormData();
-      form.append('file', ytThumbFile);
-      const res = await fetch('/api/admin/upload-thumbnail', { method: 'POST', headers, body: form });
-      if (res.ok) {
-        thumbnailUrl = (await res.json()).url;
+    try {
+      if (ytThumbFile) {
+        const f = new FormData();
+        f.append('file', ytThumbFile);
+        const res = await uploadWithProgress('/api/admin/upload-thumbnail', f, headers, setUploadProgress);
+        thumbnailUrl = res?.url || thumbnailUrl;
       } else {
-        setUploading(false);
-        return alert('Thumbnail upload failed');
+        setUploadProgress(60);
       }
-    }
 
-    const res = await fetch('/api/admin/youtube', {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ youtubeUrl: ytUrl.trim(), title: ytTitle.trim() || undefined, thumbnailUrl: thumbnailUrl || undefined }),
-    });
+      setUploadPhase('processing');
+      const res = await fetch('/api/admin/youtube', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ youtubeUrl: ytUrl.trim(), title: ytTitle.trim() || undefined, thumbnailUrl: thumbnailUrl || undefined }),
+      });
 
-    if (res.ok) {
-      setYtUrl('');
-      setYtTitle('');
-      setYtThumbUrl('');
-      setYtThumbFile(null);
-      if (ytThumbRef.current) ytThumbRef.current.value = '';
-      await fetchMedia(tab);
-    } else {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || 'Could not add YouTube video');
+      if (res.ok) {
+        setYtUrl('');
+        setYtTitle('');
+        setYtThumbUrl('');
+        setYtThumbFile(null);
+        if (ytThumbRef.current) ytThumbRef.current.value = '';
+        await fetchMedia(tab);
+        setUploadPhase('done');
+        notify('YouTube video added! Tap “Publish” to make it live.', 'success');
+        await new Promise((r) => setTimeout(r, 850));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        notify(err.error || 'Could not add YouTube video', 'error');
+      }
+    } catch (err: any) {
+      notify(err.message || 'Thumbnail upload failed', 'error');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
-    setUploading(false);
   };
 
   // ---------- audio upload ----------
@@ -204,45 +270,39 @@ export default function AdminPage() {
 
   // ---------- shared actions ----------
   const setStatus = async (item: MediaItem, status: MediaItem['status']) => {
-    await fetch(`/api/admin/media/${item.id}`, {
+    const res = await fetch(`/api/admin/media/${item.id}`, {
       method: 'PATCH',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
+    if (res.ok) {
+      notify(status === 'published' ? 'Published — now live on the site.' : 'Marked as rejected.', 'success');
+    } else {
+      notify('Could not update status', 'error');
+    }
     fetchMedia(tab);
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm('Delete this permanently? This cannot be undone.')) return;
-    await fetch(`/api/admin/media/${id}`, { method: 'DELETE', headers });
+    const ok = await confirmAction({
+      title: 'Delete permanently?',
+      message: 'This removes the file and its record for good. This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/admin/media/${id}`, { method: 'DELETE', headers });
+    notify(res.ok ? 'Deleted.' : 'Delete failed', res.ok ? 'success' : 'error');
     fetchMedia(tab);
   };
 
   // ---------- Login screen ----------
   if (!token) {
     return (
-      <div className="min-h-screen bg-gpcm-dark flex items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(circle_at_30%_20%,white,transparent_60%)]" />
-        <div className="bg-white/[0.06] backdrop-blur-xl border border-white/10 rounded-3xl p-10 max-w-md w-full relative animate-fade-in-down">
-          <h1 className="font-serif text-3xl font-bold text-gpcm-cream mb-1">GPCM Admin</h1>
-          <p className="text-gpcm-muted/70 text-sm mb-8">Enter password to manage site media</p>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && login()}
-            placeholder="Admin password"
-            className="w-full bg-white/5 border border-white/15 rounded-2xl px-5 py-4 text-gpcm-cream placeholder:text-gpcm-muted/40 mb-3 outline-none focus:ring-2 focus:ring-gpcm-amber"
-          />
-          {loginError && <p className="text-rose-400 text-sm mb-3">{loginError}</p>}
-          <button
-            onClick={login}
-            className="w-full bg-gpcm-amber hover:bg-amber-500 text-gpcm-dark py-4 rounded-2xl font-semibold transition-colors"
-          >
-            Login
-          </button>
-        </div>
-      </div>
+      <>
+        <AdminLogin password={password} setPassword={setPassword} loginError={loginError} onLogin={login} />
+        <FeedbackHost />
+      </>
     );
   }
 
@@ -250,53 +310,23 @@ export default function AdminPage() {
 
   // ---------- Dashboard ----------
   return (
-    <div className="min-h-screen bg-gpcm-light">
-      <header className="bg-gpcm-dark sticky top-0 z-50 shadow-lg">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <h1 className="font-serif text-xl font-bold text-gpcm-cream">GPCM Media Admin</h1>
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 text-sm text-gpcm-muted hover:text-gpcm-cream transition-colors"
-          >
-            <LogOut size={16} /> Logout
-          </button>
-        </div>
-        {/* Tabs */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto no-scrollbar">
-          {TABS.map((t) => {
-            const Icon = t.icon;
-            const isActive = tab === t.key;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-gpcm-amber text-gpcm-amber'
-                    : 'border-transparent text-gpcm-muted/70 hover:text-gpcm-cream'
-                }`}
-              >
-                <Icon size={15} /> {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </header>
+    <div className="min-h-screen bg-admin-milkSoft">
+      <AdminNav title="GPCM Media Admin" tabs={TABS} activeTab={tab} onTabChange={(k) => setTab(k as TabKey)} onLogout={logout} />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Upload panel — changes shape per tab */}
-        <div className="bg-white rounded-3xl border border-zinc-200 p-6 sm:p-8 mb-8 sm:mb-10 shadow-sm">
-          <h2 className="font-serif text-lg font-bold text-gpcm-dark mb-4">
+        <div className="bg-white rounded-3xl border border-admin-purple/10 p-5 sm:p-8 mb-6 sm:mb-10 shadow-sm">
+          <h2 className="font-serif text-lg font-bold text-admin-purple mb-4">
             {tab === 'sermon_video' ? 'Add a Video Sermon' : tab === 'sermon_audio' ? 'Add an Audio Message' : `Upload to ${activeTab.label}`}
           </h2>
 
           {/* Image tabs */}
           {(tab === 'gallery' || tab === 'leader' || tab === 'other') && (
             <label className="block cursor-pointer">
-              <div className="border-2 border-dashed border-zinc-300 hover:border-gpcm-amber rounded-2xl p-8 text-center transition-colors">
-                <Upload className="mx-auto mb-2 text-zinc-400" size={28} />
-                <p className="text-sm text-zinc-600">
-                  {uploading ? 'Uploading…' : 'Click to choose a JPG, PNG, or WEBP — you\u2019ll crop it before it publishes'}
+              <div className="border-2 border-dashed border-admin-purple/20 hover:border-admin-gold rounded-2xl p-8 text-center transition-colors">
+                <Upload className="mx-auto mb-2 text-admin-purple/40" size={28} />
+                <p className="text-sm text-admin-purple/70">
+                  {uploading ? 'Uploading…' : 'Tap to choose a JPG, PNG, or WEBP — you\u2019ll crop it before it publishes'}
                 </p>
               </div>
               <input
@@ -316,16 +346,16 @@ export default function AdminPage() {
               <div className="flex gap-2 mb-5">
                 <button
                   onClick={() => setVideoMode('youtube')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border ${
-                    videoMode === 'youtube' ? 'bg-gpcm-dark text-gpcm-cream border-gpcm-dark' : 'border-zinc-200 text-zinc-600'
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                    videoMode === 'youtube' ? 'bg-admin-purple text-admin-milk border-admin-purple' : 'border-admin-purple/15 text-admin-purple/70'
                   }`}
                 >
                   <Youtube size={15} /> YouTube link
                 </button>
                 <button
                   onClick={() => setVideoMode('upload')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border ${
-                    videoMode === 'upload' ? 'bg-gpcm-dark text-gpcm-cream border-gpcm-dark' : 'border-zinc-200 text-zinc-600'
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                    videoMode === 'upload' ? 'bg-admin-purple text-admin-milk border-admin-purple' : 'border-admin-purple/15 text-admin-purple/70'
                   }`}
                 >
                   <Film size={15} /> Upload file
@@ -338,23 +368,23 @@ export default function AdminPage() {
                     value={ytUrl}
                     onChange={(e) => setYtUrl(e.target.value)}
                     placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full border border-zinc-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gpcm-amber"
+                    className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold"
                   />
                   <input
                     value={ytTitle}
                     onChange={(e) => setYtTitle(e.target.value)}
                     placeholder="Title (optional)"
-                    className="w-full border border-zinc-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gpcm-amber"
+                    className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold"
                   />
                   <div className="grid sm:grid-cols-2 gap-3">
                     <input
                       value={ytThumbUrl}
                       onChange={(e) => setYtThumbUrl(e.target.value)}
                       placeholder="Custom thumbnail URL (optional)"
-                      className="w-full border border-zinc-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gpcm-amber"
+                      className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold"
                       disabled={!!ytThumbFile}
                     />
-                    <label className="border border-dashed border-zinc-300 rounded-xl px-4 py-3 text-sm text-zinc-500 text-center cursor-pointer hover:border-gpcm-amber">
+                    <label className="border border-dashed border-admin-purple/25 rounded-xl px-4 py-3 text-sm text-admin-purple/60 text-center cursor-pointer hover:border-admin-gold">
                       {ytThumbFile ? ytThumbFile.name : 'or upload a thumbnail image'}
                       <input
                         ref={ytThumbRef}
@@ -365,20 +395,20 @@ export default function AdminPage() {
                       />
                     </label>
                   </div>
-                  <p className="text-xs text-zinc-400">Leave the thumbnail blank to auto-use YouTube's own thumbnail.</p>
+                  <p className="text-xs text-admin-purple/40">Leave the thumbnail blank to auto-use YouTube's own thumbnail.</p>
                   <button
                     onClick={submitYoutube}
                     disabled={uploading}
-                    className="bg-gpcm-dark text-gpcm-cream px-6 py-3 rounded-xl font-semibold text-sm hover:bg-gpcm-darkHover disabled:opacity-50"
+                    className="bg-admin-purple text-admin-milk px-6 py-3 rounded-xl font-semibold text-sm hover:bg-admin-purpleHover disabled:opacity-50 transition-colors"
                   >
                     {uploading ? 'Adding…' : 'Add Video Sermon'}
                   </button>
                 </div>
               ) : (
                 <label className="block cursor-pointer">
-                  <div className="border-2 border-dashed border-zinc-300 hover:border-gpcm-amber rounded-2xl p-8 text-center transition-colors">
-                    <Upload className="mx-auto mb-2 text-zinc-400" size={28} />
-                    <p className="text-sm text-zinc-600">{uploading ? 'Uploading…' : 'Click to choose an MP4 or WEBM file'}</p>
+                  <div className="border-2 border-dashed border-admin-purple/20 hover:border-admin-gold rounded-2xl p-8 text-center transition-colors">
+                    <Upload className="mx-auto mb-2 text-admin-purple/40" size={28} />
+                    <p className="text-sm text-admin-purple/70">{uploading ? 'Uploading…' : 'Tap to choose an MP4 or WEBM file'}</p>
                   </div>
                   <input
                     ref={fileRef}
@@ -400,21 +430,21 @@ export default function AdminPage() {
                 value={audioTitle}
                 onChange={(e) => setAudioTitle(e.target.value)}
                 placeholder="Title (optional)"
-                className="w-full border border-zinc-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gpcm-amber"
+                className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold"
               />
-              <label className="flex items-center gap-2 text-sm text-zinc-600">
+              <label className="flex items-center gap-2 text-sm text-admin-purple/70">
                 <input
                   type="checkbox"
                   checked={audioDownloadable}
                   onChange={(e) => setAudioDownloadable(e.target.checked)}
-                  className="accent-gpcm-amber"
+                  className="accent-admin-gold"
                 />
                 Allow visitors to download this audio
               </label>
               <label className="block cursor-pointer">
-                <div className="border-2 border-dashed border-zinc-300 hover:border-gpcm-amber rounded-2xl p-8 text-center transition-colors">
-                  <Upload className="mx-auto mb-2 text-zinc-400" size={28} />
-                  <p className="text-sm text-zinc-600">{uploading ? 'Uploading…' : 'Click to choose an MP3, M4A, or WAV file'}</p>
+                <div className="border-2 border-dashed border-admin-purple/20 hover:border-admin-gold rounded-2xl p-8 text-center transition-colors">
+                  <Upload className="mx-auto mb-2 text-admin-purple/40" size={28} />
+                  <p className="text-sm text-admin-purple/70">{uploading ? 'Uploading…' : 'Tap to choose an MP3, M4A, or WAV file'}</p>
                 </div>
                 <input
                   ref={fileRef}
@@ -431,30 +461,30 @@ export default function AdminPage() {
 
         {/* Media list for this tab */}
         {loadingList ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="aspect-video rounded-2xl skeleton-preload" />
             ))}
           </div>
         ) : media.length === 0 ? (
-          <p className="text-center text-zinc-400 text-sm py-10">Nothing in {activeTab.label} yet.</p>
+          <p className="text-center text-admin-purple/40 text-sm py-10">Nothing in {activeTab.label} yet.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {media.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
-                <div className="aspect-video bg-zinc-100 relative">
+              <div key={item.id} className="bg-white rounded-2xl border border-admin-purple/10 overflow-hidden shadow-sm">
+                <div className="aspect-video bg-admin-milkSoft relative">
                   {item.type === 'video' && item.source === 'youtube' ? (
                     <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
                   ) : item.type === 'video' ? (
                     <video src={item.url} className="w-full h-full object-cover" muted />
                   ) : item.type === 'audio' ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gpcm-dark">
-                      <Headphones size={32} className="text-gpcm-amber" />
+                    <div className="w-full h-full flex items-center justify-center bg-admin-purple">
+                      <Headphones size={32} className="text-admin-gold" />
                     </div>
                   ) : (
                     <img src={item.url} alt="" className="w-full h-full object-cover" />
                   )}
-                  <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                  <div className="absolute top-3 left-3 bg-admin-purple/70 backdrop-blur-sm text-admin-milk text-xs px-2 py-1 rounded-full flex items-center gap-1">
                     {item.source === 'youtube' ? <Youtube size={12} /> : item.type === 'video' ? <Video size={12} /> : item.type === 'audio' ? <Headphones size={12} /> : <ImageIcon size={12} />}
                     {item.source === 'youtube' ? 'YouTube' : item.type}
                   </div>
@@ -464,8 +494,8 @@ export default function AdminPage() {
                 </div>
 
                 <div className="p-4 space-y-3">
-                  <p className="text-sm font-medium truncate text-zinc-800">{item.title || item.originalName}</p>
-                  <p className="flex items-center gap-1 text-xs text-zinc-400">
+                  <p className="text-sm font-medium truncate text-admin-purple">{item.title || item.originalName}</p>
+                  <p className="flex items-center gap-1 text-xs text-admin-purple/40">
                     <Clock size={12} /> {fmtDate(item.createdAt)}
                   </p>
 
@@ -475,7 +505,7 @@ export default function AdminPage() {
                     {item.status !== 'published' && (
                       <button
                         onClick={() => setStatus(item, 'published')}
-                        className="flex-1 flex items-center justify-center gap-1 text-sm py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        className="flex-1 flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
                       >
                         <Check size={14} /> Publish
                       </button>
@@ -483,7 +513,7 @@ export default function AdminPage() {
                     {item.status !== 'rejected' && (
                       <button
                         onClick={() => setStatus(item, 'rejected')}
-                        className="flex-1 flex items-center justify-center gap-1 text-sm py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100"
+                        className="flex-1 flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors"
                       >
                         <XCircle size={14} /> Reject
                       </button>
@@ -491,7 +521,7 @@ export default function AdminPage() {
                   </div>
                   <button
                     onClick={() => deleteItem(item.id)}
-                    className="w-full flex items-center justify-center gap-1 text-sm py-2 rounded-xl bg-zinc-50 text-zinc-500 hover:bg-zinc-100"
+                    className="w-full flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-admin-milkSoft text-admin-purple/50 hover:bg-admin-purple/10 hover:text-admin-purple transition-colors"
                   >
                     <Trash2 size={14} /> Delete permanently
                   </button>
@@ -514,6 +544,12 @@ export default function AdminPage() {
           onConfirm={onCropConfirm}
         />
       )}
+
+      {uploading && (
+        <UploadProgressOverlay progress={uploadProgress} fileName={uploadFileName} phase={uploadPhase} />
+      )}
+
+      <FeedbackHost />
     </div>
   );
 }
