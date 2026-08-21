@@ -1,10 +1,19 @@
-import { Play, Headphones } from 'lucide-react';
+import { useState } from 'react';
+import { Play, Headphones, Download, X } from 'lucide-react';
 import { useMedia } from '../hooks/useMedia';
+
+function youtubeEmbedUrl(youtubeUrl?: string) {
+  if (!youtubeUrl) return '';
+  const match = youtubeUrl.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
+  const id = match?.[1];
+  return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : '';
+}
 
 export default function MediaSection() {
   const { media: videos, loading: loadingV } = useMedia('sermon_video');
   const { media: audios, loading: loadingA } = useMedia('sermon_audio');
   const loading = loadingV || loadingA;
+  const [playing, setPlaying] = useState<{ url: string; isYoutube: boolean } | null>(null);
 
   return (
     <section id="media" className="py-10 sm:py-14 md:py-16 bg-zinc-900 text-white relative z-10">
@@ -39,34 +48,42 @@ export default function MediaSection() {
                 <p className="text-zinc-500 text-sm">Videos will appear here once uploaded from Admin.</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {videos.map((item) => (
-                    <a
-                      key={item.id}
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group rounded-2xl overflow-hidden border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-                    >
-                      <div className="aspect-video bg-zinc-800 relative">
-                        <video
-                          src={item.url}
-                          className="w-full h-full object-cover opacity-90 group-hover:opacity-100"
-                          muted
-                          preload="metadata"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="w-12 h-12 rounded-full bg-white/90 text-zinc-900 flex items-center justify-center shadow-lg">
-                            <Play size={20} fill="currentColor" />
-                          </span>
+                  {videos.map((item) => {
+                    const isYoutube = item.source === 'youtube';
+                    const thumb = isYoutube ? item.thumbnailUrl : item.url;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() =>
+                          setPlaying({ url: isYoutube ? (item.youtubeUrl || item.url) : item.url, isYoutube })
+                        }
+                        className="group rounded-2xl overflow-hidden border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-left"
+                      >
+                        <div className="aspect-video bg-zinc-800 relative">
+                          {isYoutube ? (
+                            <img src={thumb} alt="" className="w-full h-full object-cover opacity-90 group-hover:opacity-100" />
+                          ) : (
+                            <video
+                              src={item.url}
+                              className="w-full h-full object-cover opacity-90 group-hover:opacity-100"
+                              muted
+                              preload="metadata"
+                            />
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="w-12 h-12 rounded-full bg-white/90 text-zinc-900 flex items-center justify-center shadow-lg">
+                              <Play size={20} fill="currentColor" />
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="p-3.5">
-                        <p className="text-sm font-medium truncate">
-                          {item.title || item.originalName}
-                        </p>
-                      </div>
-                    </a>
-                  ))}
+                        <div className="p-3.5">
+                          <p className="text-sm font-medium truncate">
+                            {item.title || item.originalName}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -92,6 +109,16 @@ export default function MediaSection() {
                         <p className="text-sm font-medium truncate flex-1">
                           {item.title || item.originalName}
                         </p>
+                        {item.downloadable && (
+                          <a
+                            href={item.url}
+                            download={item.originalName}
+                            className="shrink-0 w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-zinc-300 hover:text-white transition-colors"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </a>
+                        )}
                       </div>
                       <audio controls className="w-full h-9" preload="none" src={item.url}>
                         Your browser does not support audio.
@@ -104,6 +131,35 @@ export default function MediaSection() {
           </div>
         )}
       </div>
+
+      {/* Video player modal */}
+      {playing && (
+        <div
+          className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-3"
+          onClick={() => setPlaying(null)}
+        >
+          <div className="relative max-w-4xl w-full aspect-video" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPlaying(null)}
+              className="absolute -top-9 right-0 text-white p-1.5"
+              aria-label="Close"
+            >
+              <X size={24} />
+            </button>
+            {playing.isYoutube ? (
+              <iframe
+                src={youtubeEmbedUrl(playing.url)}
+                title="Sermon video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full rounded-xl sm:rounded-2xl"
+              />
+            ) : (
+              <video src={playing.url} controls autoPlay className="w-full h-full rounded-xl sm:rounded-2xl" />
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
