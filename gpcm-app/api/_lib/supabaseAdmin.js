@@ -28,11 +28,29 @@ export function mapMediaRow(row) {
     url: row.url,
     type: row.type,
     category: row.category,
+    source: row.source,
+    youtubeUrl: row.youtube_url ?? undefined,
+    thumbnailUrl: row.thumbnail_url ?? undefined,
+    downloadable: row.downloadable,
+    status: row.status,
     title: row.title ?? undefined,
     description: row.description ?? undefined,
     order: row.order,
-    hidden: row.hidden,
     createdAt: row.created_at,
   };
 }
 
+/** Extract a YouTube video ID from any common URL shape. */
+export function extractYoutubeId(url) {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=)([\w-]{11})/,
+    /(?:youtu\.be\/)([\w-]{11})/,
+    /(?:youtube\.com\/embed\/)([\w-]{11})/,
+    /(?:youtube\.com\/shorts\/)([\w-]{11})/,
+  ];
+  for (const p of patterns) {
+    const m = url?.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
