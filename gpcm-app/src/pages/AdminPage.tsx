@@ -118,6 +118,11 @@ export default function AdminPage() {
   const [bookTitle, setBookTitle] = useState('');
   const [bookDesc, setBookDesc] = useState('');
   const [bookDownloadable, setBookDownloadable] = useState(true);
+  const [bookCoverFile, setBookCoverFile] = useState<File | null>(null);
+  const [bookPriority, setBookPriority] = useState('10');
+  const [galleryView, setGalleryView] = useState<'grid' | 'list' | 'compact'>('grid');
+  const [gallerySort, setGallerySort] = useState<'priority' | 'newest' | 'oldest' | 'name'>('priority');
+  const bookCoverRef = useRef<HTMLInputElement>(null);
   const [adminUser, setAdminUser] = useState<AdminUserInfo | null>(() => {
     try {
       const raw = localStorage.getItem('gpcm_admin_user');
@@ -419,6 +424,37 @@ export default function AdminPage() {
     fetchMedia(tab);
   };
 
+  const setPriority = async (item: MediaItem, order: number) => {
+    const res = await fetch(`/api/admin/media/${item.id}`, {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order }),
+    });
+    if (res.ok) notify(`Priority set to ${order} (lower = shows first)`, 'success');
+    else notify('Could not update priority', 'error');
+    fetchMedia(tab);
+  };
+
+  const setCoverOnItem = async (item: MediaItem, file: File) => {
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const up = await uploadWithProgress('/api/admin/upload-thumbnail', form, headers, () => {});
+      const url = up?.url;
+      if (!url) throw new Error('No cover URL');
+      const res = await fetch(`/api/admin/media/${item.id}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thumbnailUrl: url }),
+      });
+      if (res.ok) notify('Cover updated', 'success');
+      else notify('Cover save failed', 'error');
+      fetchMedia(tab);
+    } catch (e: any) {
+      notify(e.message || 'Cover upload failed', 'error');
+    }
+  };
+
   const deleteItem = async (id: string) => {
     const ok = await confirmAction({
       title: 'Delete permanently?',
@@ -607,28 +643,65 @@ export default function AdminPage() {
 
           {tab === 'book' && (
             <div className="space-y-3">
-              <input value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="Book / tract title" className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
-              <textarea value={bookDesc} onChange={(e) => setBookDesc(e.target.value)} placeholder="Short description (optional)" rows={2} className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
-              <label className="flex items-center gap-2 text-sm text-admin-purple/70">
-                <input type="checkbox" checked={bookDownloadable} onChange={(e) => setBookDownloadable(e.target.checked)} className="accent-admin-gold" />
-                Allow PDF download
+              <input value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="Book / tract title (required for site display)" className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+              <textarea value={bookDesc} onChange={(e) => setBookDesc(e.target.value)} placeholder="Short description shown under the title" rows={2} className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="block text-xs text-admin-purple/60">
+                  Priority (lower number = shows first)
+                  <input type="number" min={0} value={bookPriority} onChange={(e) => setBookPriority(e.target.value)} className="mt-1 w-full border border-admin-purple/15 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+                </label>
+                <label className="flex items-center gap-2 text-sm text-admin-purple/70 self-end pb-2">
+                  <input type="checkbox" checked={bookDownloadable} onChange={(e) => setBookDownloadable(e.target.checked)} className="accent-admin-gold" />
+                  Allow PDF download
+                </label>
+              </div>
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-admin-purple/20 hover:border-admin-gold rounded-2xl p-5 text-center transition-colors">
+                  <p className="text-sm text-admin-purple/70 font-medium">Book cover image (JPG/PNG) — shows on site & reader</p>
+                  <p className="text-xs text-admin-purple/40 mt-1">{bookCoverFile ? bookCoverFile.name : 'Tap to choose cover'}</p>
+                </div>
+                <input ref={bookCoverRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => setBookCoverFile(e.target.files?.[0] || null)} />
               </label>
               <label className="block cursor-pointer">
                 <div className="border-2 border-dashed border-admin-purple/20 hover:border-admin-gold rounded-2xl p-8 text-center transition-colors">
                   <BookOpen className="mx-auto mb-2 text-admin-purple/40" size={28} />
-                  <p className="text-sm text-admin-purple/70">{uploading ? 'Uploading…' : 'Tap to choose a PDF file'}</p>
+                  <p className="text-sm text-admin-purple/70">{uploading ? 'Uploading…' : 'Tap to choose the PDF file'}</p>
                 </div>
                 <input ref={fileRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  await uploadFile(file, file.name, 'book', {
-                    title: bookTitle.trim() || file.name,
-                    description: bookDesc.trim(),
-                    downloadable: String(bookDownloadable),
-                  });
-                  setBookTitle('');
-                  setBookDesc('');
-                  if (fileRef.current) fileRef.current.value = '';
+                  if (!bookTitle.trim()) {
+                    notify('Add a book title first', 'error');
+                    if (fileRef.current) fileRef.current.value = '';
+                    return;
+                  }
+                  let thumbnailUrl = '';
+                  try {
+                    if (bookCoverFile) {
+                      setUploading(true);
+                      setUploadPhase('uploading');
+                      setUploadFileName(bookCoverFile.name);
+                      const f = new FormData();
+                      f.append('file', bookCoverFile);
+                      const up = await uploadWithProgress('/api/admin/upload-thumbnail', f, headers, setUploadProgress);
+                      thumbnailUrl = up?.url || '';
+                    }
+                    await uploadFile(file, file.name, 'book', {
+                      title: bookTitle.trim(),
+                      description: bookDesc.trim(),
+                      downloadable: String(bookDownloadable),
+                      order: bookPriority || '10',
+                      ...(thumbnailUrl ? { thumbnailUrl } : {}),
+                    });
+                    setBookTitle('');
+                    setBookDesc('');
+                    setBookCoverFile(null);
+                    if (bookCoverRef.current) bookCoverRef.current.value = '';
+                    if (fileRef.current) fileRef.current.value = '';
+                  } catch (err: any) {
+                    notify(err.message || 'Upload failed', 'error');
+                    setUploading(false);
+                  }
                 }} disabled={uploading} />
               </label>
             </div>
@@ -661,7 +734,7 @@ export default function AdminPage() {
                   <KeyRound size={16} /> Change password
                 </h3>
                 <p className="text-xs text-admin-purple/50 mb-3">
-                  Super Admin... Cahange Password. super admin password is <code className="bg-admin-milkSoft px-1 rounded">ADMIN_PASSWORD</code> in Vercel.
+                  Database admins change password here. Env super admin password is <code className="bg-admin-milkSoft px-1 rounded">ADMIN_PASSWORD</code> in Vercel.
                 </p>
                 <div className="grid sm:grid-cols-3 gap-3 max-w-2xl">
                   <input type="password" placeholder="Current password" value={pwForm.current} onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
@@ -679,7 +752,7 @@ export default function AdminPage() {
                     <UserPlus size={16} /> Sub-admins
                   </h3>
                   <p className="text-xs text-admin-purple/50 mb-3">
-                   Permissions: upload, publish, edit/delete.
+                    Requires migration <code className="bg-admin-milkSoft px-1 rounded">004_sermon_date_books_admins.sql</code>. Permissions: upload, publish, edit/delete.
                   </p>
                   <div className="grid sm:grid-cols-2 gap-3 mb-3 max-w-2xl">
                     <input placeholder="Username" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
@@ -697,7 +770,7 @@ export default function AdminPage() {
 
                   <div className="space-y-3">
                     {subAdmins.length === 0 && (
-                      <p className="text-sm text-admin-purple/40">No sub-admins yet </p>
+                      <p className="text-sm text-admin-purple/40">No sub-admins yet (or table not migrated).</p>
                     )}
                     {subAdmins.map((u) => (
                       <div key={u.id} className="border border-admin-purple/10 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
@@ -727,6 +800,23 @@ export default function AdminPage() {
         </div>
 
         {/* Media list for this tab */}
+        {tab === 'gallery' && !loadingList && (
+          <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
+            <span className="text-admin-purple/50">View:</span>
+            {(['grid', 'list', 'compact'] as const).map((v) => (
+              <button key={v} type="button" onClick={() => setGalleryView(v)} className={`px-3 py-1.5 rounded-lg capitalize ${galleryView === v ? 'bg-admin-purple text-admin-milk' : 'bg-white border border-admin-purple/15 text-admin-purple/70'}`}>{v}</button>
+            ))}
+            <span className="text-admin-purple/50 ml-2">Sort:</span>
+            <select value={gallerySort} onChange={(e) => setGallerySort(e.target.value as typeof gallerySort)} className="border border-admin-purple/15 rounded-lg px-2 py-1.5 bg-white">
+              <option value="priority">Priority (landing order)</option>
+              <option value="newest">Newest uploaded</option>
+              <option value="oldest">Oldest uploaded</option>
+              <option value="name">Name / title</option>
+            </select>
+            <span className="text-xs text-admin-purple/40 w-full sm:w-auto">Priority 0–3 recommended for the 4 homepage images.</span>
+          </div>
+        )}
+
         {tab === 'settings' ? null : loadingList ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[...Array(3)].map((_, i) => (
@@ -736,8 +826,20 @@ export default function AdminPage() {
         ) : media.length === 0 ? (
           <p className="text-center text-admin-purple/40 text-sm py-10">Nothing in {activeTab.label} yet.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {media.map((item) => (
+          <div className={
+            tab === 'gallery' && galleryView === 'list'
+              ? 'space-y-3'
+              : tab === 'gallery' && galleryView === 'compact'
+              ? 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2'
+              : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'
+          }>
+            {[...media].sort((a, b) => {
+              if (tab !== 'gallery' && tab !== 'book') return 0;
+              if (gallerySort === 'newest' || (tab === 'book' && false)) return (b.createdAt || '').localeCompare(a.createdAt || '');
+              if (gallerySort === 'oldest') return (a.createdAt || '').localeCompare(b.createdAt || '');
+              if (gallerySort === 'name') return (a.title || a.originalName || '').localeCompare(b.title || b.originalName || '');
+              return (a.order ?? 999) - (b.order ?? 999);
+            }).map((item) => (
               <div key={item.id} className="bg-white rounded-2xl border border-admin-purple/10 overflow-hidden shadow-sm">
                 <div className="aspect-video bg-admin-milkSoft relative">
                   {item.type === 'video' && item.source === 'youtube' ? (
@@ -749,9 +851,13 @@ export default function AdminPage() {
                       <Headphones size={32} className="text-admin-gold" />
                     </div>
                   ) : item.type === 'document' ? (
-                    <div className="w-full h-full flex items-center justify-center bg-violet-50">
-                      <BookOpen size={32} className="text-admin-purple" />
-                    </div>
+                    item.thumbnailUrl ? (
+                      <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-violet-50">
+                        <BookOpen size={32} className="text-admin-purple" />
+                      </div>
+                    )
                   ) : (
                     <img src={item.url} alt="" className="w-full h-full object-cover" />
                   )}
@@ -767,8 +873,41 @@ export default function AdminPage() {
                 <div className="p-4 space-y-3">
                   <p className="text-sm font-medium truncate text-admin-purple">{item.title || item.originalName}</p>
                   <p className="flex items-center gap-1 text-xs text-admin-purple/40">
-                    <Clock size={12} /> {fmtDate(item.createdAt)}
+                    <Clock size={12} /> {fmtDate(item.createdAt)} · priority {item.order ?? '—'}
                   </p>
+                  {(tab === 'gallery' || tab === 'book') && (
+                    <label className="block text-xs text-admin-purple/60">
+                      Priority (0 = top on site)
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={item.order ?? 10}
+                        key={`${item.id}-${item.order}`}
+                        onBlur={(e) => {
+                          const n = parseInt(e.target.value, 10);
+                          if (Number.isFinite(n) && n !== item.order) setPriority(item, n);
+                        }}
+                        className="mt-1 w-full border border-admin-purple/15 rounded-lg px-2 py-1.5 text-sm"
+                      />
+                    </label>
+                  )}
+                  {tab === 'book' && (
+                    <label className="block text-xs text-admin-purple/60 cursor-pointer">
+                      {item.thumbnailUrl ? 'Replace cover image' : 'Add cover image'}
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        className="mt-1 block w-full text-xs"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) setCoverOnItem(item, f);
+                        }}
+                      />
+                      {item.thumbnailUrl && (
+                        <img src={item.thumbnailUrl} alt="" className="mt-2 h-20 w-14 object-cover rounded-lg border" />
+                      )}
+                    </label>
+                  )}
 
                   {item.type === 'audio' && <audio controls src={item.url} className="w-full h-8" preload="none" />}
 
