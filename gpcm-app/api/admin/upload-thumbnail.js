@@ -29,7 +29,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  if (!requireAdmin(req, res)) return;
+  const session = await requireAdmin(req, res, 'upload');
+  if (!session) return;
 
   try {
     await runMiddleware(req, res, upload.single('file'));
