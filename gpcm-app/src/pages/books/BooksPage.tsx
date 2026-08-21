@@ -19,7 +19,7 @@ export default function BooksPage() {
             <ArrowLeft size={14} /> Home
           </Link>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-2">Books &amp; Tracts</h1>
-          <p className="text-zinc-500 text-sm mb-8">Read online or download PDFs from the Liberty Library.</p>
+          <p className="text-zinc-500 text-sm mb-8">Read online or download PDFs from the Worshipers Library.</p>
 
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
