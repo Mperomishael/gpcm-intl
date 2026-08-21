@@ -19,7 +19,13 @@ export default function AdminLogin({
 }: Props) {
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-6 bg-admin-purple">
-      <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-50">
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover opacity-75"
+      >
         <source src="/lv_0_20260809121737.webm" type="video/webm" />
       </video>
       <div className="absolute inset-0 bg-gradient-to-b from-admin-purple/90 via-admin-purple/75 to-admin-purple/95" />
