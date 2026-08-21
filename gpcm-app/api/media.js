@@ -5,6 +5,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Never let a CDN/browser cache a stale "before publish" response.
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+
   const { data, error } = await supabaseAdmin
     .from('media')
     .select('*')
