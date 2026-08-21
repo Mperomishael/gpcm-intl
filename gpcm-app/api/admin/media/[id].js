@@ -11,14 +11,30 @@ const PATCHABLE = {
   youtubeUrl: 'youtube_url',
   thumbnailUrl: 'thumbnail_url',
   downloadable: 'downloadable',
+  sermonDate: 'sermon_date',
 };
 
 export default async function handler(req, res) {
-  if (!requireAdmin(req, res)) return;
-
   const { id } = req.query;
 
   if (req.method === 'PATCH') {
+    const isStatusOnly =
+      req.body &&
+      Object.keys(req.body).length === 1 &&
+      req.body.status !== undefined;
+
+    const session = await requireAdmin(
+      req,
+      res,
+      isStatusOnly ? 'publish' : 'edit'
+    );
+    if (!session) return;
+
+    // Publish also allowed if canPublish and only status changing
+    if (isStatusOnly && !session.canPublish && !session.canEdit) {
+      return res.status(403).json({ error: 'No publish permission' });
+    }
+
     const updates = {};
     for (const [bodyKey, column] of Object.entries(PATCHABLE)) {
       if (req.body?.[bodyKey] !== undefined) updates[column] = req.body[bodyKey];
@@ -40,6 +56,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
+    const session = await requireAdmin(req, res, 'edit');
+    if (!session) return;
+
     const { data: item, error: fetchErr } = await supabaseAdmin
       .from('media')
       .select('storage_path')
