@@ -5,6 +5,7 @@ import AboutSection from './components/AboutSection';
 import FeaturesSection from './components/FeaturesSection';
 import MapSection from './components/MapSection';
 import MediaSection from './components/MediaSection';
+import BooksSection from './components/BooksSection';
 import WhatsAppGroupSection from './components/WhatsAppGroupSection';
 import MinistriesSection from './components/MinistriesSection';
 import GallerySection from './components/GallerySection';
@@ -36,6 +37,7 @@ function App() {
         <MinistriesSection />
         <GallerySection />
         <MediaSection />
+        <BooksSection />
         <WhatsAppGroupSection />
         <GiveSection />
         <ContactSection />
