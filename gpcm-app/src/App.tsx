@@ -7,7 +7,7 @@ import MapSection from './components/MapSection';
 import MediaSection from './components/MediaSection';
 import BooksSection from './components/BooksSection';
 import WhatsAppGroupSection from './components/WhatsAppGroupSection';
-import MinistriesSection from './components/MinistriesSection';
+import StickyVideoBand from './components/StickyVideoBand';
 import GallerySection from './components/GallerySection';
 import GiveSection from './components/GiveSection';
 import ContactSection from './components/ContactSection';
@@ -34,7 +34,7 @@ function App() {
         <AboutSection />
         <FeaturesSection />
         <MapSection />
-        <MinistriesSection />
+        <StickyVideoBand />
         <GallerySection />
         <MediaSection />
         <BooksSection />
