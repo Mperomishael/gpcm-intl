@@ -6,7 +6,7 @@ export interface MediaItem {
   filename: string;
   originalName: string;
   url: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'document';
   category: string;
   source: 'upload' | 'youtube';
   youtubeUrl?: string;
@@ -16,11 +16,28 @@ export interface MediaItem {
   title?: string;
   description?: string;
   order: number;
+  sermonDate?: string;
   createdAt: string;
   storagePath?: string;
 }
 
-export function useMedia(category?: string) {
+function sortNewestFirst(items: MediaItem[]): MediaItem[] {
+  return [...items].sort((a, b) => {
+    const da = a.sermonDate || a.createdAt || '';
+    const db = b.sermonDate || b.createdAt || '';
+    return db.localeCompare(da);
+  });
+}
+
+async function fetchFromApi(category?: string): Promise<MediaItem[]> {
+  const res = await fetch(`/api/media?_=${Date.now()}`, { cache: 'no-store' });
+  if (!res.ok) return [];
+  const data: MediaItem[] = await res.json();
+  const filtered = category ? data.filter((m) => m.category === category) : data;
+  return sortNewestFirst(filtered);
+}
+
+export function useMedia(category?: string, limit?: number) {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,36 +49,57 @@ export function useMedia(category?: string) {
           .from('media')
           .select('*')
           .eq('status', 'published')
-          .order('order', { ascending: true });
+          .order('sermon_date', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false });
 
         if (category) q = q.eq('category', category);
 
         const { data, error } = await q;
         if (error) throw error;
-        setMedia((data ?? []).map(mapMediaRow));
+        let items = (data ?? []).map(mapMediaRow);
+        items = sortNewestFirst(items);
+        if (limit && limit > 0) items = items.slice(0, limit);
+        setMedia(items);
       } else {
-        const res = await fetch(`/api/media?_=${Date.now()}`, { cache: 'no-store' });
-        if (!res.ok) {
-          setMedia([]);
-          return;
-        }
-        const data: MediaItem[] = await res.json();
-        const filtered = category
-          ? data.filter((m) => m.category === category)
-          : data;
-        setMedia(filtered);
+        let items = await fetchFromApi(category);
+        if (limit && limit > 0) items = items.slice(0, limit);
+        setMedia(items);
       }
     } catch (err) {
       console.error('useMedia', err);
-      setMedia([]);
+      // Fallback to server API if direct Supabase fails (e.g. 401)
+      try {
+        let items = await fetchFromApi(category);
+        if (limit && limit > 0) items = items.slice(0, limit);
+        setMedia(items);
+      } catch {
+        setMedia([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, [category]);
+  }, [category, limit]);
 
   useEffect(() => {
     fetchMedia();
   }, [fetchMedia]);
 
   return { media, loading, refresh: fetchMedia };
+}
+
+/** Format sermon_date or createdAt for display */
+export function formatSermonDate(item: MediaItem): string {
+  const raw = item.sermonDate || item.createdAt;
+  if (!raw) return '';
+  try {
+    const d = new Date(raw.includes('T') ? raw : `${raw}T12:00:00`);
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(d);
+  } catch {
+    return raw;
+  }
 }
