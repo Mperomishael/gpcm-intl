@@ -1,66 +1,85 @@
-import { ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BookOpen, Download, ArrowRight } from 'lucide-react';
+import { useMedia } from '../hooks/useMedia';
 
-interface Props {
-  username: string;
-  setUsername: (v: string) => void;
-  password: string;
-  setPassword: (v: string) => void;
-  loginError: string;
-  onLogin: () => void;
-}
+export default function BooksSection() {
+  const { media: books, loading } = useMedia('book', 6);
 
-export default function AdminLogin({
-  username,
-  setUsername,
-  password,
-  setPassword,
-  loginError,
-  onLogin,
-}: Props) {
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-6 bg-admin-purple">
-      <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-50">
-        <source src="/lv_0_20260809121737.webm" type="video/webm" />
-      </video>
-      <div className="absolute inset-0 bg-gradient-to-b from-admin-purple/90 via-admin-purple/75 to-admin-purple/95" />
-      <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_25%_15%,#D4AF37,transparent_55%)]" />
-
-      <div className="relative w-full max-w-md bg-white/[0.07] backdrop-blur-2xl border border-white/15 rounded-3xl p-8 sm:p-10 shadow-[0_25px_70px_rgba(46,10,92,0.6)] animate-glass-in">
-        <div className="w-12 h-12 rounded-2xl bg-admin-gold/15 border border-admin-gold/30 flex items-center justify-center mb-6">
-          <ShieldCheck size={22} className="text-admin-gold" />
+    <section id="books" className="py-10 sm:py-14 md:py-16 bg-white relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-5">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div>
+            <div className="inline-flex items-center gap-1.5 bg-violet-100 text-violet-700 px-3 sm:px-4 py-1 rounded-full text-[11px] sm:text-xs font-medium mb-2">
+              <BookOpen size={12} />
+              BOOKS &amp; TRACTS
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 leading-snug">
+              Liberty Library
+            </h2>
+            <p className="mt-2 text-sm text-zinc-500 max-w-lg">
+              Read ministry books and tracts online, or download the PDF to study offline.
+            </p>
+          </div>
+          <Link
+            to="/books"
+            className="text-sm text-violet-700 hover:text-violet-900 font-medium inline-flex items-center gap-1"
+          >
+            See all <ArrowRight size={14} />
+          </Link>
         </div>
-        <h1 className="font-serif text-3xl font-bold text-admin-milk mb-1.5">GPCM Admin</h1>
-        <p className="text-admin-milkMuted/80 text-sm mb-8">
-          Super admin: password only. Sub-admins: username + password.
-        </p>
 
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && onLogin()}
-          placeholder="Username (optional for super admin)"
-          autoComplete="username"
-          className="w-full bg-white/5 border border-white/15 rounded-2xl px-5 py-4 text-admin-milk placeholder:text-admin-milkMuted/40 mb-3 outline-none focus:ring-2 focus:ring-admin-gold focus:border-admin-gold/50 transition-all"
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && onLogin()}
-          placeholder="Password"
-          autoFocus
-          autoComplete="current-password"
-          className="w-full bg-white/5 border border-white/15 rounded-2xl px-5 py-4 text-admin-milk placeholder:text-admin-milkMuted/40 mb-3 outline-none focus:ring-2 focus:ring-admin-gold focus:border-admin-gold/50 transition-all"
-        />
-        {loginError && <p className="text-rose-300 text-sm mb-3">{loginError}</p>}
-        <button
-          onClick={onLogin}
-          className="w-full bg-admin-gold hover:bg-admin-goldHover text-admin-purple py-4 rounded-2xl font-semibold transition-colors shadow-[0_10px_30px_rgba(212,175,55,0.25)]"
-        >
-          Login
-        </button>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-40 rounded-2xl skeleton-preload" />
+            ))}
+          </div>
+        ) : books.length === 0 ? (
+          <p className="text-zinc-500 text-sm">Books and tracts will appear here once published from Admin.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {books.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 flex flex-col gap-3 hover:border-violet-200 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0">
+                    <BookOpen size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-zinc-900 truncate">{item.title || item.originalName}</h3>
+                    {item.description && (
+                      <p className="text-xs text-zinc-500 line-clamp-2 mt-1">{item.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-auto pt-2">
+                  <Link
+                    to={`/books/${item.id}`}
+                    className="flex-1 text-center text-sm font-semibold py-2.5 rounded-xl bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+                  >
+                    Read
+                  </Link>
+                  {item.downloadable !== false && (
+                    <a
+                      href={item.url}
+                      download={item.originalName || 'book.pdf'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-11 flex items-center justify-center rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition-colors"
+                      title="Download PDF"
+                    >
+                      <Download size={16} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
 }
