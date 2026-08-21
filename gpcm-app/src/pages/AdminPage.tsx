@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Upload, Trash2, Image as ImageIcon, Video, Headphones,
   UserSquare2, FolderOpen, Check, XCircle, Youtube, Film, Clock,
+  BookOpen, Settings, UserPlus, KeyRound,
 } from 'lucide-react';
 import ImageCropModal from '../components/admin/ImageCropModal';
 import AdminLogin from '../components/admin/AdminLogin';
@@ -15,7 +16,7 @@ interface MediaItem {
   filename: string;
   originalName: string;
   url: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'document';
   category: string;
   source: 'upload' | 'youtube';
   youtubeUrl?: string;
@@ -23,18 +24,43 @@ interface MediaItem {
   downloadable: boolean;
   status: 'pending' | 'published' | 'rejected';
   title?: string;
+  description?: string;
   order: number;
+  sermonDate?: string;
   createdAt: string;
 }
 
-type TabKey = 'gallery' | 'leader' | 'sermon_video' | 'sermon_audio' | 'other';
+interface AdminUserInfo {
+  id?: string;
+  username: string;
+  displayName?: string;
+  isSuper: boolean;
+  canUpload: boolean;
+  canPublish: boolean;
+  canEdit: boolean;
+}
+
+interface SubAdminRow {
+  id: string;
+  username: string;
+  displayName?: string;
+  isSuper: boolean;
+  canUpload: boolean;
+  canPublish: boolean;
+  canEdit: boolean;
+  active: boolean;
+}
+
+type TabKey = 'gallery' | 'leader' | 'sermon_video' | 'sermon_audio' | 'book' | 'other' | 'settings';
 
 const TABS: { key: TabKey; label: string; icon: typeof ImageIcon; aspect?: number }[] = [
   { key: 'gallery', label: 'Gallery', icon: ImageIcon, aspect: 1 },
   { key: 'leader', label: 'Leader Photo', icon: UserSquare2, aspect: 4 / 5 },
   { key: 'sermon_video', label: 'Video Sermons', icon: Video },
   { key: 'sermon_audio', label: 'Audio Messages', icon: Headphones },
+  { key: 'book', label: 'Books & Tracts', icon: BookOpen },
   { key: 'other', label: 'Other', icon: FolderOpen, aspect: 1 },
+  { key: 'settings', label: 'Settings', icon: Settings },
 ];
 
 const fmtDate = (iso: string) =>
@@ -86,7 +112,30 @@ export default function AdminPage() {
   const { notify, confirmAction, FeedbackHost } = useGlassFeedback();
 
   const [token, setToken] = useState(localStorage.getItem('gpcm_admin_token') || '');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [sermonDate, setSermonDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [bookTitle, setBookTitle] = useState('');
+  const [bookDesc, setBookDesc] = useState('');
+  const [bookDownloadable, setBookDownloadable] = useState(true);
+  const [adminUser, setAdminUser] = useState<AdminUserInfo | null>(() => {
+    try {
+      const raw = localStorage.getItem('gpcm_admin_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [subAdmins, setSubAdmins] = useState<SubAdminRow[]>([]);
+  const [newUser, setNewUser] = useState({
+    username: '',
+    password: '',
+    displayName: '',
+    canUpload: true,
+    canPublish: false,
+    canEdit: false,
+  });
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
   const [loginError, setLoginError] = useState('');
   const [tab, setTab] = useState<TabKey>('gallery');
   const [media, setMedia] = useState<MediaItem[]>([]);
@@ -120,19 +169,27 @@ export default function AdminPage() {
   const headers = { 'x-admin-token': token };
 
   const fetchMedia = async (category: TabKey) => {
+    if (category === 'settings') return;
     setLoadingList(true);
     const res = await fetch(`/api/admin/media?category=${category}`, { headers });
     if (res.ok) {
       setMedia(await res.json());
     } else if (res.status === 401) {
       setToken('');
+      setAdminUser(null);
       localStorage.removeItem('gpcm_admin_token');
+      localStorage.removeItem('gpcm_admin_user');
     }
     setLoadingList(false);
   };
 
   useEffect(() => {
-    if (token) fetchMedia(tab);
+    if (!token) return;
+    if (tab === 'settings') {
+      if (adminUser?.isSuper !== false) fetchUsers();
+    } else {
+      fetchMedia(tab);
+    }
   }, [token, tab]);
 
   const login = async () => {
@@ -140,12 +197,16 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password, username: username.trim() || undefined }),
     });
     if (res.ok) {
-      const { token: t } = await res.json();
-      setToken(t);
-      localStorage.setItem('gpcm_admin_token', t);
+      const body = await res.json();
+      setToken(body.token);
+      localStorage.setItem('gpcm_admin_token', body.token);
+      if (body.user) {
+        setAdminUser(body.user);
+        localStorage.setItem('gpcm_admin_user', JSON.stringify(body.user));
+      }
     } else {
       const body = await res.json().catch(() => ({}));
       setLoginError(body.error || 'Wrong password');
@@ -154,7 +215,81 @@ export default function AdminPage() {
 
   const logout = () => {
     setToken('');
+    setAdminUser(null);
     localStorage.removeItem('gpcm_admin_token');
+    localStorage.removeItem('gpcm_admin_user');
+  };
+
+  const fetchUsers = async () => {
+    const res = await fetch('/api/admin/users', { headers });
+    if (res.ok) setSubAdmins(await res.json());
+    else if (res.status === 403) setSubAdmins([]);
+  };
+
+  const createSubAdmin = async () => {
+    if (!newUser.username || !newUser.password) return notify('Username and password required', 'error');
+    const res = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(newUser),
+    });
+    if (res.ok) {
+      notify('Sub-admin created', 'success');
+      setNewUser({ username: '', password: '', displayName: '', canUpload: true, canPublish: false, canEdit: false });
+      fetchUsers();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      notify(err.error || 'Failed to create', 'error');
+    }
+  };
+
+  const patchSubAdmin = async (id: string, body: Record<string, unknown>) => {
+    const res = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...body }),
+    });
+    if (res.ok) {
+      notify('Updated', 'success');
+      fetchUsers();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      notify(err.error || 'Update failed', 'error');
+    }
+  };
+
+  const deleteSubAdmin = async (id: string) => {
+    const ok = await confirmAction({
+      title: 'Remove sub-admin?',
+      message: 'They will no longer be able to log in.',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/admin/users?id=${encodeURIComponent(id)}`, { method: 'DELETE', headers });
+    notify(res.ok ? 'Removed' : 'Failed', res.ok ? 'success' : 'error');
+    fetchUsers();
+  };
+
+  const changePassword = async () => {
+    if (pwForm.next !== pwForm.confirm) return notify('New passwords do not match', 'error');
+    if (pwForm.next.length < 6) return notify('Password must be at least 6 characters', 'error');
+    const res = await fetch('/api/admin/password', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      if (body.token) {
+        setToken(body.token);
+        localStorage.setItem('gpcm_admin_token', body.token);
+      }
+      setPwForm({ current: '', next: '', confirm: '' });
+      notify('Password changed', 'success');
+    } else {
+      notify(body.error || 'Could not change password', 'error');
+    }
   };
 
   // ---------- image upload (with crop) ----------
@@ -204,7 +339,7 @@ export default function AdminPage() {
   const onPickVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await uploadFile(file, file.name, 'sermon_video');
+    await uploadFile(file, file.name, 'sermon_video', { sermonDate });
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -231,7 +366,7 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/youtube', {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ youtubeUrl: ytUrl.trim(), title: ytTitle.trim() || undefined, thumbnailUrl: thumbnailUrl || undefined }),
+        body: JSON.stringify({ youtubeUrl: ytUrl.trim(), title: ytTitle.trim() || undefined, thumbnailUrl: thumbnailUrl || undefined, sermonDate: sermonDate || undefined }),
       });
 
       if (res.ok) {
@@ -263,6 +398,7 @@ export default function AdminPage() {
     await uploadFile(file, file.name, 'sermon_audio', {
       title: audioTitle.trim(),
       downloadable: String(audioDownloadable),
+      sermonDate,
     });
     setAudioTitle('');
     if (fileRef.current) fileRef.current.value = '';
@@ -300,7 +436,14 @@ export default function AdminPage() {
   if (!token) {
     return (
       <>
-        <AdminLogin password={password} setPassword={setPassword} loginError={loginError} onLogin={login} />
+        <AdminLogin
+          username={username}
+          setUsername={setUsername}
+          password={password}
+          setPassword={setPassword}
+          loginError={loginError}
+          onLogin={login}
+        />
         <FeedbackHost />
       </>
     );
@@ -317,7 +460,7 @@ export default function AdminPage() {
         {/* Upload panel — changes shape per tab */}
         <div className="bg-white rounded-3xl border border-admin-purple/10 p-5 sm:p-8 mb-6 sm:mb-10 shadow-sm">
           <h2 className="font-serif text-lg font-bold text-admin-purple mb-4">
-            {tab === 'sermon_video' ? 'Add a Video Sermon' : tab === 'sermon_audio' ? 'Add an Audio Message' : `Upload to ${activeTab.label}`}
+            {tab === 'sermon_video' ? 'Add a Video Sermon' : tab === 'sermon_audio' ? 'Add an Audio Message' : tab === 'book' ? 'Upload Book / Tract (PDF)' : tab === 'settings' ? 'Admin settings' : `Upload to ${activeTab.label}`}
           </h2>
 
           {/* Image tabs */}
@@ -343,6 +486,8 @@ export default function AdminPage() {
           {/* Video sermons */}
           {tab === 'sermon_video' && (
             <div>
+              <label className="block text-xs font-medium text-admin-purple/60 mb-1">Sermon date (newest first on site)</label>
+              <input type="date" value={sermonDate} onChange={(e) => setSermonDate(e.target.value)} className="mb-4 border border-admin-purple/15 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
               <div className="flex gap-2 mb-5">
                 <button
                   onClick={() => setVideoMode('youtube')}
@@ -426,6 +571,8 @@ export default function AdminPage() {
           {/* Audio messages */}
           {tab === 'sermon_audio' && (
             <div className="space-y-3">
+              <label className="block text-xs font-medium text-admin-purple/60">Sermon date</label>
+              <input type="date" value={sermonDate} onChange={(e) => setSermonDate(e.target.value)} className="border border-admin-purple/15 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
               <input
                 value={audioTitle}
                 onChange={(e) => setAudioTitle(e.target.value)}
@@ -457,10 +604,130 @@ export default function AdminPage() {
               </label>
             </div>
           )}
+
+          {tab === 'book' && (
+            <div className="space-y-3">
+              <input value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="Book / tract title" className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+              <textarea value={bookDesc} onChange={(e) => setBookDesc(e.target.value)} placeholder="Short description (optional)" rows={2} className="w-full border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+              <label className="flex items-center gap-2 text-sm text-admin-purple/70">
+                <input type="checkbox" checked={bookDownloadable} onChange={(e) => setBookDownloadable(e.target.checked)} className="accent-admin-gold" />
+                Allow PDF download
+              </label>
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-admin-purple/20 hover:border-admin-gold rounded-2xl p-8 text-center transition-colors">
+                  <BookOpen className="mx-auto mb-2 text-admin-purple/40" size={28} />
+                  <p className="text-sm text-admin-purple/70">{uploading ? 'Uploading…' : 'Tap to choose a PDF file'}</p>
+                </div>
+                <input ref={fileRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  await uploadFile(file, file.name, 'book', {
+                    title: bookTitle.trim() || file.name,
+                    description: bookDesc.trim(),
+                    downloadable: String(bookDownloadable),
+                  });
+                  setBookTitle('');
+                  setBookDesc('');
+                  if (fileRef.current) fileRef.current.value = '';
+                }} disabled={uploading} />
+              </label>
+            </div>
+          )}
+
+          {tab === 'other' && (
+            <p className="text-xs text-admin-purple/50 mb-3">Other is archive-only — not shown on public Gallery, Media, or Books sections.</p>
+          )}
+
+          {tab === 'settings' && (
+            <div className="space-y-8">
+              {adminUser && (
+                <p className="text-sm text-admin-purple/60">
+                  Signed in as <strong className="text-admin-purple">{adminUser.displayName || adminUser.username}</strong>
+                  {adminUser.isSuper ? ' · Super admin' : ''}
+                  {!adminUser.isSuper && (
+                    <span className="ml-1">
+                      ({[
+                        adminUser.canUpload && 'upload',
+                        adminUser.canPublish && 'publish',
+                        adminUser.canEdit && 'edit',
+                      ].filter(Boolean).join(', ') || 'no permissions'})
+                    </span>
+                  )}
+                </p>
+              )}
+
+              <div>
+                <h3 className="font-semibold text-admin-purple mb-2 flex items-center gap-2">
+                  <KeyRound size={16} /> Change password
+                </h3>
+                <p className="text-xs text-admin-purple/50 mb-3">
+                  Database admins change password here. Env super admin password is <code className="bg-admin-milkSoft px-1 rounded">ADMIN_PASSWORD</code> in Vercel.
+                </p>
+                <div className="grid sm:grid-cols-3 gap-3 max-w-2xl">
+                  <input type="password" placeholder="Current password" value={pwForm.current} onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+                  <input type="password" placeholder="New password" value={pwForm.next} onChange={(e) => setPwForm({ ...pwForm, next: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+                  <input type="password" placeholder="Confirm new" value={pwForm.confirm} onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+                </div>
+                <button type="button" onClick={changePassword} className="mt-3 bg-admin-purple text-admin-milk px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-admin-purpleHover">
+                  Update password
+                </button>
+              </div>
+
+              {(adminUser?.isSuper !== false) && (
+                <div>
+                  <h3 className="font-semibold text-admin-purple mb-2 flex items-center gap-2">
+                    <UserPlus size={16} /> Sub-admins
+                  </h3>
+                  <p className="text-xs text-admin-purple/50 mb-3">
+                    Requires migration <code className="bg-admin-milkSoft px-1 rounded">004_sermon_date_books_admins.sql</code>. Permissions: upload, publish, edit/delete.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3 mb-3 max-w-2xl">
+                    <input placeholder="Username" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+                    <input placeholder="Display name" value={newUser.displayName} onChange={(e) => setNewUser({ ...newUser, displayName: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+                    <input type="password" placeholder="Password (min 6)" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-admin-purple/70">
+                      <label className="flex items-center gap-1.5"><input type="checkbox" checked={newUser.canUpload} onChange={(e) => setNewUser({ ...newUser, canUpload: e.target.checked })} className="accent-admin-gold" /> Upload</label>
+                      <label className="flex items-center gap-1.5"><input type="checkbox" checked={newUser.canPublish} onChange={(e) => setNewUser({ ...newUser, canPublish: e.target.checked })} className="accent-admin-gold" /> Publish</label>
+                      <label className="flex items-center gap-1.5"><input type="checkbox" checked={newUser.canEdit} onChange={(e) => setNewUser({ ...newUser, canEdit: e.target.checked })} className="accent-admin-gold" /> Edit</label>
+                    </div>
+                  </div>
+                  <button type="button" onClick={createSubAdmin} className="bg-admin-purple text-admin-milk px-5 py-2.5 rounded-xl text-sm font-semibold mb-5">
+                    Create sub-admin
+                  </button>
+
+                  <div className="space-y-3">
+                    {subAdmins.length === 0 && (
+                      <p className="text-sm text-admin-purple/40">No sub-admins yet (or table not migrated).</p>
+                    )}
+                    {subAdmins.map((u) => (
+                      <div key={u.id} className="border border-admin-purple/10 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                        <div>
+                          <p className="font-medium text-admin-purple">{u.displayName || u.username}</p>
+                          <p className="text-xs text-admin-purple/50">@{u.username}{u.isSuper ? ' · super' : ''}{!u.active ? ' · inactive' : ''}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs items-center">
+                          <label className="flex items-center gap-1 px-2 py-1 rounded-lg bg-admin-milkSoft">
+                            <input type="checkbox" checked={u.canUpload} onChange={(e) => patchSubAdmin(u.id, { canUpload: e.target.checked })} className="accent-admin-gold" /> Upload
+                          </label>
+                          <label className="flex items-center gap-1 px-2 py-1 rounded-lg bg-admin-milkSoft">
+                            <input type="checkbox" checked={u.canPublish} onChange={(e) => patchSubAdmin(u.id, { canPublish: e.target.checked })} className="accent-admin-gold" /> Publish
+                          </label>
+                          <label className="flex items-center gap-1 px-2 py-1 rounded-lg bg-admin-milkSoft">
+                            <input type="checkbox" checked={u.canEdit} onChange={(e) => patchSubAdmin(u.id, { canEdit: e.target.checked })} className="accent-admin-gold" /> Edit
+                          </label>
+                          <button type="button" onClick={() => deleteSubAdmin(u.id)} className="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100">Remove</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Media list for this tab */}
-        {loadingList ? (
+        {tab === 'settings' ? null : loadingList ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="aspect-video rounded-2xl skeleton-preload" />
@@ -480,6 +747,10 @@ export default function AdminPage() {
                   ) : item.type === 'audio' ? (
                     <div className="w-full h-full flex items-center justify-center bg-admin-purple">
                       <Headphones size={32} className="text-admin-gold" />
+                    </div>
+                  ) : item.type === 'document' ? (
+                    <div className="w-full h-full flex items-center justify-center bg-violet-50">
+                      <BookOpen size={32} className="text-admin-purple" />
                     </div>
                   ) : (
                     <img src={item.url} alt="" className="w-full h-full object-cover" />
