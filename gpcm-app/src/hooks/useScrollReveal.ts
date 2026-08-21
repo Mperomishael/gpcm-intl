@@ -1,43 +1,54 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * IntersectionObserver-based reveal.
- * - Entering viewport: items "fall in" with staggered delay
- * - Leaving (scroll away): they can "fly out" in reverse order when resetOnLeave is true
+ * IntersectionObserver reveal with safe defaults:
+ * - Starts visible so content is never blank before observer runs
+ * - Falls in with stagger when entering; flies out when leaving
  */
 export function useScrollReveal(itemCount: number, options?: { rootMargin?: string; threshold?: number }) {
   const containerRef = useRef<HTMLElement | null>(null);
-  const [visible, setVisible] = useState(false);
+  // true by default → cards show immediately; observer only toggles for animation
+  const [visible, setVisible] = useState(true);
+  const measured = useRef(false);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
+    // After paint, sync with real intersection once
+    const sync = () => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || 0;
+      const inView = rect.top < vh * 0.92 && rect.bottom > vh * 0.05;
+      if (!measured.current) {
+        measured.current = true;
+        setVisible(inView);
+      }
+    };
+    const raf = requestAnimationFrame(sync);
+
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-        } else {
-          // Reset so re-entry animates again (fall / fly cycle)
-          setVisible(false);
-        }
+        setVisible(entry.isIntersecting);
       },
       {
         root: null,
-        rootMargin: options?.rootMargin ?? '0px 0px -8% 0px',
-        threshold: options?.threshold ?? 0.12,
+        rootMargin: options?.rootMargin ?? '40px 0px 40px 0px',
+        threshold: options?.threshold ?? 0.05,
       }
     );
 
     obs.observe(el);
-    return () => obs.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      obs.disconnect();
+    };
   }, [options?.rootMargin, options?.threshold, itemCount]);
 
   return { containerRef, visible };
 }
 
-/** Stagger delay in ms for index i (enter) or reverse (exit feels sequential). */
 export function staggerDelay(index: number, visible: boolean, total: number, step = 70): number {
   if (visible) return index * step;
-  return (total - 1 - index) * step * 0.5;
+  return Math.max(0, total - 1 - index) * step * 0.45;
 }
