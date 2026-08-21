@@ -9,12 +9,12 @@ import { supabaseAdmin, MEDIA_BUCKET, mapMediaRow } from '../_lib/supabaseAdmin.
 // Storage instead of saved to disk.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 80 * 1024 * 1024 }, // 80 MB
+  limits: { fileSize: 80 * 1024 * 1024 }, // 80 MB (see Vercel body-size caveat in DEPLOY_NOTES.md)
   fileFilter: (_, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.mp4', '.webm', '.mp3', '.m4a', '.wav'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.webm', '.mp3', '.m4a', '.wav'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('Only JPG, PNG, MP4, WEBM, MP3, M4A, WAV allowed'));
+    else cb(new Error('Only JPG, PNG, WEBP, MP4, WEBM, MP3, M4A, WAV allowed'));
   },
 });
 
@@ -65,6 +65,9 @@ export default async function handler(req, res) {
     ? 'audio'
     : 'image';
 
+  const category = req.body.category || 'gallery';
+  const downloadable = req.body.downloadable !== 'false'; // default true
+
   const { count } = await supabaseAdmin.from('media').select('*', { count: 'exact', head: true });
 
   const { data: row, error: insertErr } = await supabaseAdmin
@@ -75,9 +78,12 @@ export default async function handler(req, res) {
       url: publicUrlData.publicUrl,
       storage_path: storagePath,
       type,
-      category: req.body.category || 'gallery',
+      category,
+      source: 'upload',
+      downloadable,
+      status: 'pending',
+      title: req.body.title || null,
       order: count ?? 0,
-      hidden: false,
     })
     .select()
     .single();
