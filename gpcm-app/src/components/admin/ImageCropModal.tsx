@@ -85,19 +85,19 @@ export default function ImageCropModal({ file, aspect, label, onCancel, onConfir
   }, [natural, displayScale, offset, containerH, aspect, imgUrl, onConfirm]);
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+    <div className="fixed inset-0 z-[300] bg-admin-purple/80 backdrop-blur-md flex items-center justify-center p-4 animate-glass-in">
+      <div className="bg-white/[0.08] backdrop-blur-2xl border border-white/15 rounded-3xl p-6 max-w-sm w-full shadow-[0_20px_60px_rgba(46,10,92,0.6)]">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-serif text-lg font-bold text-gpcm-dark">{label}</h3>
-          <button onClick={onCancel} className="text-zinc-400 hover:text-zinc-700">
+          <h3 className="font-serif text-lg font-bold text-admin-milk">{label}</h3>
+          <button onClick={onCancel} className="text-admin-milkMuted/60 hover:text-admin-milk transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        <p className="text-xs text-zinc-500 mb-3">Drag to reposition, use the slider to zoom, then confirm.</p>
+        <p className="text-xs text-admin-milkMuted/70 mb-3">Drag to reposition, use the slider to zoom, then confirm.</p>
 
         <div
-          className="mx-auto rounded-2xl overflow-hidden border-2 border-gpcm-amber/40 relative touch-none select-none cursor-grab active:cursor-grabbing bg-zinc-100"
+          className="mx-auto rounded-2xl overflow-hidden border-2 border-admin-gold/50 relative touch-none select-none cursor-grab active:cursor-grabbing bg-admin-purpleHover"
           style={{ width: CONTAINER_W, height: containerH }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -119,7 +119,7 @@ export default function ImageCropModal({ file, aspect, label, onCancel, onConfir
         </div>
 
         <div className="flex items-center gap-3 mt-4">
-          <ZoomIn size={16} className="text-zinc-400 shrink-0" />
+          <ZoomIn size={16} className="text-admin-milkMuted/60 shrink-0" />
           <input
             type="range"
             min={1}
@@ -127,21 +127,21 @@ export default function ImageCropModal({ file, aspect, label, onCancel, onConfir
             step={0.01}
             value={zoom}
             onChange={(e) => setZoom(parseFloat(e.target.value))}
-            className="w-full accent-gpcm-amber"
+            className="w-full accent-admin-gold"
           />
         </div>
 
         <div className="flex gap-3 mt-6">
           <button
             onClick={onCancel}
-            className="flex-1 py-3 rounded-2xl border border-zinc-200 text-zinc-600 font-medium hover:bg-zinc-50"
+            className="flex-1 py-3 rounded-2xl border border-white/15 text-admin-milk font-medium hover:bg-white/5 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={confirm}
             disabled={busy || !natural}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-gpcm-dark text-gpcm-cream font-semibold hover:bg-gpcm-darkHover disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-admin-gold text-admin-purple font-semibold hover:bg-admin-goldHover disabled:opacity-50 transition-colors"
           >
             <Check size={16} /> {busy ? 'Processing…' : 'Confirm & Upload'}
           </button>
