@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     .from('media')
     .select('*')
     .eq('status', 'published')
-    .order('sermon_date', { ascending: false, nullsFirst: false })
+    .order('order', { ascending: true })
     .order('created_at', { ascending: false });
 
   if (category && typeof category === 'string') {
