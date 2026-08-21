@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Upload, Trash2, Image as ImageIcon, Video, Headphones,
   UserSquare2, FolderOpen, Check, XCircle, Youtube, Film, Clock,
-  BookOpen, Settings, UserPlus, KeyRound,
+  BookOpen, Settings, UserPlus, KeyRound, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import ImageCropModal from '../components/admin/ImageCropModal';
 import AdminLogin from '../components/admin/AdminLogin';
@@ -122,6 +122,7 @@ export default function AdminPage() {
   const [bookPriority, setBookPriority] = useState('10');
   const [galleryView, setGalleryView] = useState<'grid' | 'list' | 'compact'>('grid');
   const [gallerySort, setGallerySort] = useState<'priority' | 'newest' | 'oldest' | 'name'>('priority');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const bookCoverRef = useRef<HTMLInputElement>(null);
   const [adminUser, setAdminUser] = useState<AdminUserInfo | null>(() => {
     try {
@@ -400,8 +401,19 @@ export default function AdminPage() {
   const onPickAudio = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await uploadFile(file, file.name, 'sermon_audio', {
-      title: audioTitle.trim(),
+    // Vercel serverless request body limit ~4.5MB on Hobby — warn early
+    const maxMb = 4.2;
+    if (file.size > maxMb * 1024 * 1024) {
+      notify(
+        `Audio is ${(file.size / 1024 / 1024).toFixed(1)}MB. Keep under ~${maxMb}MB for upload on this host (compress the MP3 or use a shorter clip).`,
+        'error'
+      );
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    const name = file.name.includes('.') ? file.name : `${file.name || 'audio'}.mp3`;
+    await uploadFile(file, name, 'sermon_audio', {
+      title: audioTitle.trim() || name,
       downloadable: String(audioDownloadable),
       sermonDate,
     });
@@ -632,7 +644,7 @@ export default function AdminPage() {
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".mp3,.m4a,.wav"
+                  accept=".mp3,.m4a,.wav,.aac,.ogg,audio/*"
                   className="hidden"
                   onChange={onPickAudio}
                   disabled={uploading}
@@ -825,121 +837,176 @@ export default function AdminPage() {
           </div>
         ) : media.length === 0 ? (
           <p className="text-center text-admin-purple/40 text-sm py-10">Nothing in {activeTab.label} yet.</p>
-        ) : (
-          <div className={
-            tab === 'gallery' && galleryView === 'list'
-              ? 'space-y-3'
-              : tab === 'gallery' && galleryView === 'compact'
-              ? 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2'
-              : 'grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'
-          }>
-            {[...media].sort((a, b) => {
-              if (tab !== 'gallery' && tab !== 'book') return 0;
-              if (gallerySort === 'newest' || (tab === 'book' && false)) return (b.createdAt || '').localeCompare(a.createdAt || '');
+        ) : (() => {
+          const sorted = [...media].sort((a, b) => {
+            if (tab === 'gallery' || tab === 'book') {
+              if (gallerySort === 'newest') return (b.createdAt || '').localeCompare(a.createdAt || '');
               if (gallerySort === 'oldest') return (a.createdAt || '').localeCompare(b.createdAt || '');
               if (gallerySort === 'name') return (a.title || a.originalName || '').localeCompare(b.title || b.originalName || '');
               return (a.order ?? 999) - (b.order ?? 999);
-            }).map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl border border-admin-purple/10 overflow-hidden shadow-sm">
-                <div className="aspect-video bg-admin-milkSoft relative">
-                  {item.type === 'video' && item.source === 'youtube' ? (
-                    <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                  ) : item.type === 'video' ? (
-                    <video src={item.url} className="w-full h-full object-cover" muted />
-                  ) : item.type === 'audio' ? (
-                    <div className="w-full h-full flex items-center justify-center bg-admin-purple">
-                      <Headphones size={32} className="text-admin-gold" />
-                    </div>
-                  ) : item.type === 'document' ? (
-                    item.thumbnailUrl ? (
-                      <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-violet-50">
-                        <BookOpen size={32} className="text-admin-purple" />
-                      </div>
-                    )
-                  ) : (
-                    <img src={item.url} alt="" className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute top-3 left-3 bg-admin-purple/70 backdrop-blur-sm text-admin-milk text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                    {item.source === 'youtube' ? <Youtube size={12} /> : item.type === 'video' ? <Video size={12} /> : item.type === 'audio' ? <Headphones size={12} /> : <ImageIcon size={12} />}
-                    {item.source === 'youtube' ? 'YouTube' : item.type}
-                  </div>
-                  <div className={`absolute top-3 right-3 text-xs px-2 py-1 rounded-full border font-medium capitalize ${STATUS_STYLES[item.status]}`}>
-                    {item.status}
-                  </div>
-                </div>
+            }
+            return (b.createdAt || '').localeCompare(a.createdAt || '');
+          });
 
-                <div className="p-4 space-y-3">
-                  <p className="text-sm font-medium truncate text-admin-purple">{item.title || item.originalName}</p>
-                  <p className="flex items-center gap-1 text-xs text-admin-purple/40">
-                    <Clock size={12} /> {fmtDate(item.createdAt)} · priority {item.order ?? '—'}
-                  </p>
-                  {(tab === 'gallery' || tab === 'book') && (
-                    <label className="block text-xs text-admin-purple/60">
-                      Priority (0 = top on site)
-                      <input
-                        type="number"
-                        min={0}
-                        defaultValue={item.order ?? 10}
-                        key={`${item.id}-${item.order}`}
-                        onBlur={(e) => {
-                          const n = parseInt(e.target.value, 10);
-                          if (Number.isFinite(n) && n !== item.order) setPriority(item, n);
-                        }}
-                        className="mt-1 w-full border border-admin-purple/15 rounded-lg px-2 py-1.5 text-sm"
-                      />
-                    </label>
-                  )}
-                  {tab === 'book' && (
-                    <label className="block text-xs text-admin-purple/60 cursor-pointer">
-                      {item.thumbnailUrl ? 'Replace cover image' : 'Add cover image'}
-                      <input
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.webp"
-                        className="mt-1 block w-full text-xs"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) setCoverOnItem(item, f);
-                        }}
-                      />
-                      {item.thumbnailUrl && (
-                        <img src={item.thumbnailUrl} alt="" className="mt-2 h-20 w-14 object-cover rounded-lg border" />
+          const isGalleryList = tab === 'gallery' && galleryView === 'list';
+          const isGalleryCompact = tab === 'gallery' && galleryView === 'compact';
+
+          if (isGalleryList) {
+            return (
+              <div className="bg-white rounded-2xl border border-admin-purple/10 overflow-hidden divide-y divide-admin-purple/10">
+                {sorted.map((item) => {
+                  const open = expandedId === item.id;
+                  return (
+                    <div key={item.id} className="text-left">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(open ? null : item.id)}
+                        className="w-full flex items-center gap-3 px-3 sm:px-4 py-3 hover:bg-admin-milkSoft/80 transition-colors"
+                      >
+                        <img src={item.url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0 bg-admin-milkSoft" />
+                        <div className="min-w-0 flex-1 text-left">
+                          <p className="text-sm font-medium text-admin-purple truncate">{item.title || item.originalName}</p>
+                          <p className="text-[11px] text-admin-purple/45 truncate">
+                            {fmtDate(item.createdAt)} · priority {item.order ?? '—'} · <span className="capitalize">{item.status}</span>
+                          </p>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border capitalize shrink-0 ${STATUS_STYLES[item.status]}`}>{item.status}</span>
+                        {open ? <ChevronDown size={16} className="text-admin-purple/40 shrink-0" /> : <ChevronRight size={16} className="text-admin-purple/40 shrink-0" />}
+                      </button>
+                      {open && (
+                        <div className="px-4 pb-4 pt-1 bg-admin-milkSoft/40 space-y-3 border-t border-admin-purple/5">
+                          <div className="flex gap-3">
+                            <img src={item.url} alt="" className="w-28 h-28 rounded-xl object-cover" />
+                            <div className="flex-1 space-y-2 min-w-0">
+                              <p className="text-xs text-admin-purple/60 break-all">{item.url}</p>
+                              <label className="block text-xs text-admin-purple/60">
+                                Priority (0 = top on homepage)
+                                <input type="number" min={0} defaultValue={item.order ?? 10} key={`${item.id}-p-${item.order}`}
+                                  onBlur={(e) => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n) && n !== item.order) setPriority(item, n); }}
+                                  className="mt-1 w-full max-w-[8rem] border border-admin-purple/15 rounded-lg px-2 py-1.5 text-sm bg-white" />
+                              </label>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {item.status !== 'published' && (
+                              <button type="button" onClick={() => setStatus(item, 'published')} className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700"><Check size={14} /> Publish</button>
+                            )}
+                            {item.status !== 'rejected' && (
+                              <button type="button" onClick={() => setStatus(item, 'rejected')} className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-rose-50 text-rose-700"><XCircle size={14} /> Reject</button>
+                            )}
+                            <button type="button" onClick={() => deleteItem(item.id)} className="flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-white text-admin-purple/60 border border-admin-purple/10"><Trash2 size={14} /> Delete</button>
+                          </div>
+                        </div>
                       )}
-                    </label>
-                  )}
-
-                  {item.type === 'audio' && <audio controls src={item.url} className="w-full h-8" preload="none" />}
-
-                  <div className="flex gap-2">
-                    {item.status !== 'published' && (
-                      <button
-                        onClick={() => setStatus(item, 'published')}
-                        className="flex-1 flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                      >
-                        <Check size={14} /> Publish
-                      </button>
-                    )}
-                    {item.status !== 'rejected' && (
-                      <button
-                        onClick={() => setStatus(item, 'rejected')}
-                        className="flex-1 flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors"
-                      >
-                        <XCircle size={14} /> Reject
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => deleteItem(item.id)}
-                    className="w-full flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-admin-milkSoft text-admin-purple/50 hover:bg-admin-purple/10 hover:text-admin-purple transition-colors"
-                  >
-                    <Trash2 size={14} /> Delete permanently
-                  </button>
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          }
+
+          if (isGalleryCompact) {
+            return (
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                {sorted.map((item) => (
+                  <div key={item.id} className="bg-white rounded-xl border border-admin-purple/10 overflow-hidden group relative">
+                    <div className="aspect-square bg-admin-milkSoft relative">
+                      <img src={item.url} alt="" className="w-full h-full object-cover" />
+                      <span className={`absolute top-1 right-1 text-[9px] px-1.5 py-0.5 rounded-full border capitalize ${STATUS_STYLES[item.status]}`}>{item.status}</span>
+                    </div>
+                    <div className="p-1.5">
+                      <p className="text-[10px] text-admin-purple/70 truncate leading-tight">{item.title || item.originalName}</p>
+                      <p className="text-[9px] text-admin-purple/40">#{item.order ?? '—'}</p>
+                      <div className="flex gap-1 mt-1">
+                        {item.status !== 'published' && (
+                          <button type="button" onClick={() => setStatus(item, 'published')} className="flex-1 text-[10px] py-1 rounded-md bg-emerald-50 text-emerald-700">Pub</button>
+                        )}
+                        <button type="button" onClick={() => deleteItem(item.id)} className="px-1.5 text-[10px] py-1 rounded-md bg-admin-milkSoft text-admin-purple/50"><Trash2 size={10} /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {sorted.map((item) => (
+                <div key={item.id} className="bg-white rounded-2xl border border-admin-purple/10 overflow-hidden shadow-sm">
+                  <div className="aspect-video bg-admin-milkSoft relative">
+                    {item.type === 'video' && item.source === 'youtube' ? (
+                      <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                    ) : item.type === 'video' ? (
+                      <video src={item.url} className="w-full h-full object-cover" muted />
+                    ) : item.type === 'audio' ? (
+                      <div className="w-full h-full flex items-center justify-center bg-admin-purple">
+                        <Headphones size={32} className="text-admin-gold" />
+                      </div>
+                    ) : item.type === 'document' ? (
+                      item.thumbnailUrl ? (
+                        <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-violet-50">
+                          <BookOpen size={32} className="text-admin-purple" />
+                        </div>
+                      )
+                    ) : (
+                      <img src={item.url} alt="" className="w-full h-full object-cover" />
+                    )}
+                    <div className="absolute top-3 left-3 bg-admin-purple/70 backdrop-blur-sm text-admin-milk text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      {item.source === 'youtube' ? <Youtube size={12} /> : item.type === 'video' ? <Video size={12} /> : item.type === 'audio' ? <Headphones size={12} /> : <ImageIcon size={12} />}
+                      {item.source === 'youtube' ? 'YouTube' : item.type}
+                    </div>
+                    <div className={`absolute top-3 right-3 text-xs px-2 py-1 rounded-full border font-medium capitalize ${STATUS_STYLES[item.status]}`}>
+                      {item.status}
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <p className="text-sm font-medium truncate text-admin-purple">{item.title || item.originalName}</p>
+                    <p className="flex items-center gap-1 text-xs text-admin-purple/40">
+                      <Clock size={12} /> {fmtDate(item.createdAt)} · priority {item.order ?? '—'}
+                    </p>
+                    {(tab === 'gallery' || tab === 'book') && (
+                      <label className="block text-xs text-admin-purple/60">
+                        Priority (0 = top on site)
+                        <input type="number" min={0} defaultValue={item.order ?? 10} key={`${item.id}-${item.order}`}
+                          onBlur={(e) => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n) && n !== item.order) setPriority(item, n); }}
+                          className="mt-1 w-full border border-admin-purple/15 rounded-lg px-2 py-1.5 text-sm" />
+                      </label>
+                    )}
+                    {tab === 'book' && (
+                      <label className="block text-xs text-admin-purple/60 cursor-pointer">
+                        {item.thumbnailUrl ? 'Replace cover image' : 'Add cover image'}
+                        <input type="file" accept=".jpg,.jpeg,.png,.webp" className="mt-1 block w-full text-xs"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) setCoverOnItem(item, f); }} />
+                        {item.thumbnailUrl && (
+                          <img src={item.thumbnailUrl} alt="" className="mt-2 h-20 w-14 object-cover rounded-lg border" />
+                        )}
+                      </label>
+                    )}
+                    {item.type === 'audio' && <audio controls src={item.url} className="w-full h-8" preload="none" />}
+                    <div className="flex gap-2">
+                      {item.status !== 'published' && (
+                        <button onClick={() => setStatus(item, 'published')} className="flex-1 flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
+                          <Check size={14} /> Publish
+                        </button>
+                      )}
+                      {item.status !== 'rejected' && (
+                        <button onClick={() => setStatus(item, 'rejected')} className="flex-1 flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors">
+                          <XCircle size={14} /> Reject
+                        </button>
+                      )}
+                    </div>
+                    <button onClick={() => deleteItem(item.id)} className="w-full flex items-center justify-center gap-1 text-sm py-2.5 rounded-xl bg-admin-milkSoft text-admin-purple/50 hover:bg-admin-purple/10 hover:text-admin-purple transition-colors">
+                      <Trash2 size={14} /> Delete permanently
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </main>
 
       {cropFile && (
