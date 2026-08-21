@@ -4,28 +4,28 @@ import path from 'path';
 import { requireAdmin } from '../_lib/auth.js';
 import { supabaseAdmin, MEDIA_BUCKET, mapMediaRow } from '../_lib/supabaseAdmin.js';
 
-// Memory storage: Vercel's filesystem is read-only/ephemeral outside
-// /tmp, so files are buffered in memory then streamed to Supabase
-// Storage instead of saved to disk.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 80 * 1024 * 1024 }, // 80 MB (see Vercel body-size caveat in DEPLOY_NOTES.md)
+  limits: { fileSize: 80 * 1024 * 1024 },
   fileFilter: (_, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.webm', '.mp3', '.m4a', '.wav'];
+    const allowed = [
+      '.jpg', '.jpeg', '.png', '.webp',
+      '.mp4', '.webm',
+      '.mp3', '.m4a', '.wav',
+      '.pdf',
+    ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('Only JPG, PNG, WEBP, MP4, WEBM, MP3, M4A, WAV allowed'));
+    else cb(new Error('Only JPG, PNG, WEBP, MP4, WEBM, MP3, M4A, WAV, PDF allowed'));
   },
 });
 
-// Run a connect-style middleware inside a plain Vercel function.
 function runMiddleware(req, res, fn) {
   return new Promise((resolve, reject) => {
     fn(req, res, (result) => (result instanceof Error ? reject(result) : resolve(result)));
   });
 }
 
-// Vercel needs to hand multer the raw, unparsed request body.
 export const config = {
   api: { bodyParser: false },
 };
@@ -34,7 +34,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  if (!requireAdmin(req, res)) return;
+  const session = await requireAdmin(req, res, 'upload');
+  if (!session) return;
 
   try {
     await runMiddleware(req, res, upload.single('file'));
@@ -59,32 +60,41 @@ export default async function handler(req, res) {
 
   const { data: publicUrlData } = supabaseAdmin.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath);
 
-  const type = req.file.mimetype.startsWith('video')
-    ? 'video'
-    : req.file.mimetype.startsWith('audio')
-    ? 'audio'
-    : 'image';
+  let type = 'image';
+  if (req.file.mimetype.startsWith('video') || ['.mp4', '.webm'].includes(ext)) type = 'video';
+  else if (req.file.mimetype.startsWith('audio') || ['.mp3', '.m4a', '.wav'].includes(ext)) type = 'audio';
+  else if (req.file.mimetype === 'application/pdf' || ext === '.pdf') type = 'document';
 
-  const category = req.body.category || 'gallery';
-  const downloadable = req.body.downloadable !== 'false'; // default true
+  const category = req.body.category || (type === 'document' ? 'book' : 'gallery');
+  const downloadable = req.body.downloadable !== 'false';
+  const sermonDate = req.body.sermonDate || req.body.sermon_date || null;
+  const title = req.body.title || null;
+  const description = req.body.description || null;
 
   const { count } = await supabaseAdmin.from('media').select('*', { count: 'exact', head: true });
 
+  const insertRow = {
+    filename,
+    original_name: req.file.originalname,
+    url: publicUrlData.publicUrl,
+    storage_path: storagePath,
+    type,
+    category,
+    source: 'upload',
+    downloadable,
+    status: 'pending',
+    title,
+    description,
+    order: count ?? 0,
+  };
+  if (sermonDate) insertRow.sermon_date = sermonDate;
+  else if (type === 'video' || type === 'audio') {
+    insertRow.sermon_date = new Date().toISOString().slice(0, 10);
+  }
+
   const { data: row, error: insertErr } = await supabaseAdmin
     .from('media')
-    .insert({
-      filename,
-      original_name: req.file.originalname,
-      url: publicUrlData.publicUrl,
-      storage_path: storagePath,
-      type,
-      category,
-      source: 'upload',
-      downloadable,
-      status: 'pending',
-      title: req.body.title || null,
-      order: count ?? 0,
-    })
+    .insert(insertRow)
     .select()
     .single();
 
