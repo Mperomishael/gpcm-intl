@@ -5,15 +5,17 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  if (!requireAdmin(req, res)) return;
+  const session = await requireAdmin(req, res, 'upload');
+  if (!session) return;
 
-  const { youtubeUrl, title, thumbnailUrl } = req.body || {};
+  const { youtubeUrl, title, thumbnailUrl, sermonDate } = req.body || {};
   if (!youtubeUrl) return res.status(400).json({ error: 'youtubeUrl is required' });
 
   const videoId = extractYoutubeId(youtubeUrl);
   if (!videoId) return res.status(400).json({ error: 'Could not read a video ID from that YouTube link' });
 
   const finalThumbnail = thumbnailUrl || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  const dateVal = sermonDate || new Date().toISOString().slice(0, 10);
 
   const { count } = await supabaseAdmin.from('media').select('*', { count: 'exact', head: true });
 
@@ -32,6 +34,7 @@ export default async function handler(req, res) {
       downloadable: false,
       status: 'pending',
       title: title || null,
+      sermon_date: dateVal,
       order: count ?? 0,
     })
     .select()
