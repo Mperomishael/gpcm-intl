@@ -5,7 +5,8 @@ export default async function handler(req, res) {
   if (req.method !== 'PUT') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  if (!requireAdmin(req, res)) return;
+  const session = await requireAdmin(req, res);
+  if (!session) return;
 
   const { orderedIds } = req.body || {};
   if (!Array.isArray(orderedIds)) {
