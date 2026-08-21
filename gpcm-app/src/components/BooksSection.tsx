@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Download, ArrowRight } from 'lucide-react';
 import { useMedia } from '../hooks/useMedia';
+import { useScrollReveal, staggerDelay } from '../hooks/useScrollReveal';
 
 export default function BooksSection() {
   const { media: books, loading } = useMedia('book', 6);
+  const reveal = useScrollReveal(books.length || 4);
 
   return (
     <section id="books" className="py-10 sm:py-14 md:py-16 bg-white relative z-10">
@@ -32,51 +34,55 @@ export default function BooksSection() {
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-40 rounded-2xl skeleton-preload" />
+              <div key={i} className="rounded-2xl overflow-hidden">
+                <div className="aspect-[3/4] skeleton-preload" />
+              </div>
             ))}
           </div>
         ) : books.length === 0 ? (
           <p className="text-zinc-500 text-sm">Books and tracts will appear here once published from Admin.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {books.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 flex flex-col gap-3 hover:border-violet-200 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0">
-                    <BookOpen size={20} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-medium text-zinc-900 truncate">{item.title || item.originalName}</h3>
-                    {item.description && (
-                      <p className="text-xs text-zinc-500 line-clamp-2 mt-1">{item.description}</p>
+          <div ref={reveal.containerRef as React.RefObject<HTMLDivElement>} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+            {books.map((item, idx) => {
+              const cover = item.thumbnailUrl;
+              return (
+                <Link
+                  key={item.id}
+                  to={`/books/${item.id}`}
+                  className={`group rounded-2xl border border-zinc-200 bg-zinc-50 overflow-hidden hover:border-violet-200 hover:shadow-md flex flex-col fall-item ${reveal.visible ? 'is-in' : 'is-out'}`}
+                  style={{ transitionDelay: `${staggerDelay(idx, reveal.visible, books.length)}ms` }}
+                >
+                  <div className="aspect-[3/4] bg-gradient-to-br from-violet-100 to-amber-50 relative overflow-hidden">
+                    {cover ? (
+                      <img
+                        src={cover}
+                        alt={item.title || item.originalName}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                        <BookOpen className="text-violet-400 mb-2" size={36} />
+                        <span className="text-xs font-medium text-violet-700 line-clamp-3">
+                          {item.title || item.originalName}
+                        </span>
+                      </div>
                     )}
                   </div>
-                </div>
-                <div className="flex gap-2 mt-auto pt-2">
-                  <Link
-                    to={`/books/${item.id}`}
-                    className="flex-1 text-center text-sm font-semibold py-2.5 rounded-xl bg-violet-600 text-white hover:bg-violet-700 transition-colors"
-                  >
-                    Read
-                  </Link>
-                  {item.downloadable !== false && (
-                    <a
-                      href={item.url}
-                      download={item.originalName || 'book.pdf'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-11 flex items-center justify-center rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition-colors"
-                      title="Download PDF"
-                    >
-                      <Download size={16} />
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
+                  <div className="p-3 sm:p-4 flex-1 flex flex-col">
+                    <h3 className="font-serif font-semibold text-zinc-900 text-sm sm:text-base leading-snug line-clamp-2">
+                      {item.title || item.originalName}
+                    </h3>
+                    {item.description && (
+                      <p className="text-xs text-zinc-500 line-clamp-2 mt-1.5 flex-1">{item.description}</p>
+                    )}
+                    <span className="mt-3 text-xs font-semibold text-violet-700 group-hover:underline">
+                      Read book →
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
