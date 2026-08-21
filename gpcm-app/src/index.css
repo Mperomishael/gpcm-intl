@@ -116,3 +116,50 @@ html { scroll-behavior: smooth; }
   opacity: 1;
   transform: translateX(0);
 }
+
+/* Fall in / fly out staggered media & book cards */
+@keyframes fall-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2.5rem) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes fly-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(2rem) scale(0.94);
+  }
+}
+
+.fall-item {
+  opacity: 0;
+  transform: translateY(-2.5rem) scale(0.96);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.fall-item.is-in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.fall-item.is-out {
+  opacity: 0;
+  transform: translateY(1.75rem) scale(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fall-item {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
