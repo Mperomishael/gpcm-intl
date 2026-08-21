@@ -14,13 +14,17 @@ export type MediaRow = {
   filename: string;
   original_name: string;
   url: string;
-  storage_path: string;
+  storage_path: string | null;
   type: 'image' | 'video' | 'audio';
   category: string;
+  source: 'upload' | 'youtube';
+  youtube_url: string | null;
+  thumbnail_url: string | null;
+  downloadable: boolean;
+  status: 'pending' | 'published' | 'rejected';
   title: string | null;
   description: string | null;
   order: number;
-  hidden: boolean;
   created_at: string;
 };
 
@@ -33,11 +37,15 @@ export function mapMediaRow(row: MediaRow) {
     url: row.url,
     type: row.type,
     category: row.category,
+    source: row.source,
+    youtubeUrl: row.youtube_url ?? undefined,
+    thumbnailUrl: row.thumbnail_url ?? undefined,
+    downloadable: row.downloadable,
+    status: row.status,
     title: row.title ?? undefined,
     description: row.description ?? undefined,
     order: row.order,
-    hidden: row.hidden,
     createdAt: row.created_at,
-    storagePath: row.storage_path,
+    storagePath: row.storage_path ?? undefined,
   };
 }
