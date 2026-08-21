@@ -3,11 +3,17 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import WhatsAppFloat from '../../components/WhatsAppFloat';
+import { useMedia } from '../../hooks/useMedia';
+
+const FALLBACK = '/images/worship.webp';
 
 export default function GeneralOverseerPage() {
+  const { media: leaders, loading } = useMedia('leader', 1);
+  const photoUrl = leaders[0]?.url || FALLBACK;
+
   return (
     <div className="tail-container bg-zinc-50 text-zinc-900 min-h-screen relative overflow-x-clip">
-      <Navbar onOpenLiveModal={() => window.location.href = '/live'} />
+      <Navbar onOpenLiveModal={() => (window.location.href = '/live')} />
       <main className="pt-20">
         <section className="py-10 sm:py-14 md:py-20 bg-[#F6E4CF] relative z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-5">
@@ -26,13 +32,18 @@ export default function GeneralOverseerPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-start">
               <div className="bg-[#FFF9F2] border border-[#D9C4AA] rounded-2xl overflow-hidden shadow-sm">
-                <div
-                  className="h-72 sm:h-96 md:h-[28rem] bg-cover bg-center bg-no-repeat"
-                  style={{ backgroundImage: "url('/images/leader.webp')" }}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.backgroundImage = "url('/images/worship.webp')";
-                  }}
-                />
+                {loading ? (
+                  <div className="h-72 sm:h-96 md:h-[28rem] skeleton-preload" />
+                ) : (
+                  <img
+                    src={photoUrl}
+                    alt="Apostle Bishop Dr. Ilaya O. Clement"
+                    className="w-full h-72 sm:h-96 md:h-[28rem] object-cover object-top"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = FALLBACK;
+                    }}
+                  />
+                )}
                 <div className="p-5 sm:p-7">
                   <h2 className="font-serif text-xl sm:text-2xl font-semibold text-[#321C04] mb-1">
                     Apostle Bishop Dr. Ilaya O. Clement
