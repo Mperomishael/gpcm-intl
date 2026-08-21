@@ -30,7 +30,7 @@ function App() {
     <div className="tail-container bg-zinc-50 text-zinc-900 min-h-screen relative overflow-x-clip">
       <Navbar onOpenLiveModal={() => setIsLiveModalOpen(true)} />
       <main>
-        <HeroSection />
+        <HeroSection onOpenLiveModal={() => setIsLiveModalOpen(true)} />
         <AboutSection />
         <FeaturesSection />
         <MapSection />
