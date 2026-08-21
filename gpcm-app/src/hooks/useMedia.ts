@@ -40,7 +40,7 @@ export function useMedia(category?: string) {
         if (error) throw error;
         setMedia((data ?? []).map(mapMediaRow));
       } else {
-        const res = await fetch('/api/media');
+        const res = await fetch(`/api/media?_=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) {
           setMedia([]);
           return;
