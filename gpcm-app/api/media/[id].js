@@ -5,6 +5,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+
   const { id } = req.query;
   const { data, error } = await supabaseAdmin.from('media').select('*').eq('id', id).single();
 
