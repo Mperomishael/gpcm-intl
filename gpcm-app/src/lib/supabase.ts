@@ -15,7 +15,7 @@ export type MediaRow = {
   original_name: string;
   url: string;
   storage_path: string | null;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'document';
   category: string;
   source: 'upload' | 'youtube';
   youtube_url: string | null;
@@ -25,6 +25,7 @@ export type MediaRow = {
   title: string | null;
   description: string | null;
   order: number;
+  sermon_date: string | null;
   created_at: string;
 };
 
@@ -45,6 +46,7 @@ export function mapMediaRow(row: MediaRow) {
     title: row.title ?? undefined,
     description: row.description ?? undefined,
     order: row.order,
+    sermonDate: row.sermon_date ?? undefined,
     createdAt: row.created_at,
     storagePath: row.storage_path ?? undefined,
   };
