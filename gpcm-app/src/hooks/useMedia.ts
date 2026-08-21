@@ -21,8 +21,12 @@ export interface MediaItem {
   storagePath?: string;
 }
 
-function sortNewestFirst(items: MediaItem[]): MediaItem[] {
+/** Priority first (lower order = higher priority), then newest date. */
+function sortByPriority(items: MediaItem[]): MediaItem[] {
   return [...items].sort((a, b) => {
+    const oa = a.order ?? 999;
+    const ob = b.order ?? 999;
+    if (oa !== ob) return oa - ob;
     const da = a.sermonDate || a.createdAt || '';
     const db = b.sermonDate || b.createdAt || '';
     return db.localeCompare(da);
@@ -34,7 +38,7 @@ async function fetchFromApi(category?: string): Promise<MediaItem[]> {
   if (!res.ok) return [];
   const data: MediaItem[] = await res.json();
   const filtered = category ? data.filter((m) => m.category === category) : data;
-  return sortNewestFirst(filtered);
+  return sortByPriority(filtered);
 }
 
 export function useMedia(category?: string, limit?: number) {
@@ -49,15 +53,14 @@ export function useMedia(category?: string, limit?: number) {
           .from('media')
           .select('*')
           .eq('status', 'published')
-          .order('sermon_date', { ascending: false, nullsFirst: false })
+          .order('order', { ascending: true })
           .order('created_at', { ascending: false });
 
         if (category) q = q.eq('category', category);
 
         const { data, error } = await q;
         if (error) throw error;
-        let items = (data ?? []).map(mapMediaRow);
-        items = sortNewestFirst(items);
+        let items = sortByPriority((data ?? []).map(mapMediaRow));
         if (limit && limit > 0) items = items.slice(0, limit);
         setMedia(items);
       } else {
@@ -67,7 +70,6 @@ export function useMedia(category?: string, limit?: number) {
       }
     } catch (err) {
       console.error('useMedia', err);
-      // Fallback to server API if direct Supabase fails (e.g. 401)
       try {
         let items = await fetchFromApi(category);
         if (limit && limit > 0) items = items.slice(0, limit);
@@ -87,7 +89,6 @@ export function useMedia(category?: string, limit?: number) {
   return { media, loading, refresh: fetchMedia };
 }
 
-/** Format sermon_date or createdAt for display */
 export function formatSermonDate(item: MediaItem): string {
   const raw = item.sermonDate || item.createdAt;
   if (!raw) return '';
