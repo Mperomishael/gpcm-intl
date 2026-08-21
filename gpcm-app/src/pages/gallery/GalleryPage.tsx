@@ -5,9 +5,11 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import WhatsAppFloat from '../../components/WhatsAppFloat';
 import { useMedia } from '../../hooks/useMedia';
+import { useScrollReveal, staggerDelay } from '../../hooks/useScrollReveal';
 
 export default function GalleryPage() {
   const { media, loading } = useMedia('gallery');
+  const reveal = useScrollReveal(media.length || 8);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   return (
@@ -43,12 +45,13 @@ export default function GalleryPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                {media.map((item) => (
+              <div ref={reveal.containerRef as React.RefObject<HTMLDivElement>} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                {media.map((item, idx) => (
                   <div
                     key={item.id}
                     onClick={() => setSelectedImage(item.url)}
-                    className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group border border-[#D9C4AA]"
+                    className={`aspect-square rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group border border-[#D9C4AA] fall-item ${reveal.visible ? 'is-in' : 'is-out'}`}
+                    style={{ transitionDelay: `${staggerDelay(idx, reveal.visible, media.length)}ms` }}
                   >
                     {item.type === 'video' ? (
                       <video
