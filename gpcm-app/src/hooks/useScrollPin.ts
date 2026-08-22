@@ -50,7 +50,6 @@ export function useScrollPin<T extends HTMLElement>() {
     const measure = () => {
       ticking = false;
       const rect = el.getBoundingClientRect();
-      const vh = vhRef.current;
 
       if (rect.top > 0) {
         setPhase('before');
