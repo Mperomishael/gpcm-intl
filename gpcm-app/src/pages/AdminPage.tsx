@@ -746,7 +746,7 @@ export default function AdminPage() {
                   <KeyRound size={16} /> Change password
                 </h3>
                 <p className="text-xs text-admin-purple/50 mb-3">
-                  Database admins change password here. Env super admin password is <code className="bg-admin-milkSoft px-1 rounded">ADMIN_PASSWORD</code> in Vercel.
+                  Super Admin change password here.
                 </p>
                 <div className="grid sm:grid-cols-3 gap-3 max-w-2xl">
                   <input type="password" placeholder="Current password" value={pwForm.current} onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
@@ -764,7 +764,7 @@ export default function AdminPage() {
                     <UserPlus size={16} /> Sub-admins
                   </h3>
                   <p className="text-xs text-admin-purple/50 mb-3">
-                    Requires migration <code className="bg-admin-milkSoft px-1 rounded">004_sermon_date_books_admins.sql</code>. Permissions: upload, publish, edit/delete.
+                    Permissions: upload, publish, edit/delete.
                   </p>
                   <div className="grid sm:grid-cols-2 gap-3 mb-3 max-w-2xl">
                     <input placeholder="Username" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} className="border border-admin-purple/15 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-admin-gold" />
@@ -782,7 +782,7 @@ export default function AdminPage() {
 
                   <div className="space-y-3">
                     {subAdmins.length === 0 && (
-                      <p className="text-sm text-admin-purple/40">No sub-admins yet (or table not migrated).</p>
+                      <p className="text-sm text-admin-purple/40">No subadmin added. </p>
                     )}
                     {subAdmins.map((u) => (
                       <div key={u.id} className="border border-admin-purple/10 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
