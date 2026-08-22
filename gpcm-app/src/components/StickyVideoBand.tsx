@@ -53,7 +53,7 @@ export default function StickyVideoBand() {
             A place of worship, transformation &amp; impact
           </h2>
           <p className="mt-4 max-w-md text-sm sm:text-base text-white/85 drop-shadow-md">
-            Keep scrolling — the next section will glide over this moment.
+            Keep scrolling — Enter the moments in God's Presence.
           </p>
           <div className="mt-8 flex flex-col items-center gap-1 text-white/60 animate-bounce">
             <span className="text-[10px] uppercase tracking-wider">Scroll</span>
