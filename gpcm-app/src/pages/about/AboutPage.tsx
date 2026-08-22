@@ -45,7 +45,7 @@ export default function AboutPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               <div className="card-hover bg-[#FFF9F2] border border-[#D9C4AA] rounded-xl sm:rounded-2xl overflow-hidden">
-                <div className="h-36 sm:h-44 md:h-52 bg-cover bg-center" style={{ backgroundImage: "url('/images/worship.webp')" }} />
+                <div className="h-36 sm:h-44 md:h-52 bg-cover bg-center" style={{ backgroundImage: "url('/images/anointing.webp')" }} />
                 <div className="p-4 sm:p-5">
                   <h3 className="font-serif text-xl sm:text-2xl font-semibold mb-1.5 text-[#321C04]">Worship</h3>
                   <p className="text-xs sm:text-sm text-[#321C04]/80">We honour God with glad hearts — in song, in the Word, and in everyday obedience.</p>
