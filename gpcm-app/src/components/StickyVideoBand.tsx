@@ -1,12 +1,16 @@
 import { useRef, useEffect, useState } from 'react';
+import { useScrollPin } from '../hooks/useScrollPin';
 
 /**
- * Full-viewport video pinned in place while content below scrolls over it.
- * Video stays static; next section fully covers it with a soft top shadow.
+ * Full-viewport video truly pinned (position:fixed, never sticky) while
+ * content below scrolls over it. The video never moves at all; it just
+ * gets covered by the next section sliding up, and un-covered again on
+ * scroll back up. See useScrollPin for the mechanics.
  */
 export default function StickyVideoBand() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
+  const { wrapperRef, pinStyle } = useScrollPin<HTMLElement>();
 
   useEffect(() => {
     const v = videoRef.current;
@@ -21,9 +25,10 @@ export default function StickyVideoBand() {
     <section
       id="vision"
       aria-label="Ministry vision video"
+      ref={wrapperRef}
       className="relative h-[150vh] sm:h-[165vh] md:h-[180vh] bg-zinc-950"
     >
-      <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
+      <div style={pinStyle} className="w-full overflow-hidden">
         <video
           ref={videoRef}
           autoPlay
