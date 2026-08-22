@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useScrollPin } from '../hooks/useScrollPin';
 
 const MESSAGES = [
   {
@@ -111,13 +112,15 @@ export default function HeroSection({ onOpenLiveModal }: HeroSectionProps) {
   }, [msgIndex, videoReady, showLoader]);
 
   const isExiting = phase === 'exiting';
+  const { wrapperRef, pinStyle } = useScrollPin<HTMLElement>();
 
   return (
     <section
       id="home"
+      ref={wrapperRef}
       className="relative h-[130vh] sm:h-[140vh] md:h-[150vh]"
     >
-      <div className="sticky top-0 h-[100svh] h-screen flex items-center justify-center overflow-hidden pt-14">
+      <div style={pinStyle} className="flex items-center justify-center overflow-hidden pt-14">
       {showLoader && (
         <div
           className="absolute inset-0 z-30 bg-zinc-950 flex flex-col overflow-hidden"
