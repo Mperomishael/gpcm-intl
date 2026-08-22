@@ -2,7 +2,10 @@ import React from 'react';
 
 export default function AboutSection() {
   return (
-    <section id="about" className="py-10 sm:py-14 md:py-16 bg-[#F6E4CF] rounded-t-[16px] sm:rounded-t-[20px] relative z-10 mt-[-16px] sm:mt-[-20px]">
+    <section
+      id="about"
+      className="py-10 sm:py-14 md:py-16 bg-[#F6E4CF] rounded-t-[1.75rem] sm:rounded-t-[2.5rem] relative z-20 -mt-1 shadow-[0_-24px_48px_rgba(0,0,0,0.28),0_-8px_16px_rgba(0,0,0,0.12)]"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-5">
         <div className="text-center mb-7 sm:mb-10">
           <div className="inline-flex items-center gap-1.5 bg-violet-100 text-violet-700 px-3 sm:px-4 py-1 rounded-full text-[11px] sm:text-xs font-medium mb-2 sm:mb-3">
