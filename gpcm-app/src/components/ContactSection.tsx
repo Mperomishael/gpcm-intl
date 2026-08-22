@@ -9,8 +9,22 @@ export default function ContactSection() {
     message: '',
   });
 
+  const CONTACT_EMAIL = 'usher@glowingpalaceministry.org';
+
   const handleSubmit = () => {
-    alert('✅ Thank you! Your message has been received. We will get back to you shortly.');
+    const subject = `Website message from ${formData.name || 'a visitor'}`;
+    const body = [
+      `Name: ${formData.name}`,
+      `Email: ${formData.email}`,
+      `Phone: ${formData.phone}`,
+      '',
+      formData.message,
+    ].join('\n');
+
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+
     setFormData({ name: '', email: '', phone: '', message: '' });
   };
 
@@ -90,7 +104,7 @@ export default function ContactSection() {
                 <Mail size={18} />
               </div>
               <div className="font-medium text-sm sm:text-base text-zinc-900 pt-1.5 break-all">
-                support@glowingpalaceministry.org
+                usher@glowingpalaceministry.org
               </div>
             </div>
 
