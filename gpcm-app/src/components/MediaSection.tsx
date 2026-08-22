@@ -43,7 +43,7 @@ export default function MediaSection() {
   };
 
   return (
-    <section id="media" className="py-10 sm:py-14 md:py-16 bg-zinc-900 text-white relative z-10">
+    <section id="media" className="py-10 sm:py-14 md:py-16 bg-zinc-900 text-white relative z-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-5">
         <div className="text-center mb-8 sm:mb-10">
           <div className="inline-flex items-center gap-1.5 bg-white/10 text-amber-300 px-3 sm:px-4 py-1 rounded-full text-[11px] sm:text-xs font-medium mb-2 sm:mb-3">
