@@ -1,9 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
 
 /**
- * Full-viewport video that stays pinned while you scroll;
- * the sections below slide over and cover it (parallax "overlap" band).
- * Uses the same hero webm for continuity.
+ * Full-viewport video pinned in place while content below scrolls over it.
+ * Video stays static; next section fully covers it with a soft top shadow.
  */
 export default function StickyVideoBand() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -22,9 +21,8 @@ export default function StickyVideoBand() {
     <section
       id="vision"
       aria-label="Ministry vision video"
-      className="relative h-[140vh] sm:h-[160vh] md:h-[170vh] bg-zinc-900"
+      className="relative h-[150vh] sm:h-[165vh] md:h-[180vh] bg-zinc-950"
     >
-      {/* Sticky stage: video does not scroll away until the band is fully passed */}
       <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
         <video
           ref={videoRef}
@@ -40,8 +38,7 @@ export default function StickyVideoBand() {
           <source src="/lv_0_20260809121737.webm" type="video/webm" />
         </video>
 
-        {/* Soft gradient so text stays readable without hiding the video */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/20 to-black/55 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/60 pointer-events-none" />
 
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-5 text-white">
           <p className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-amber-300/90 mb-3 font-medium">
@@ -51,7 +48,7 @@ export default function StickyVideoBand() {
             A place of worship, transformation &amp; impact
           </h2>
           <p className="mt-4 max-w-md text-sm sm:text-base text-white/85 drop-shadow-md">
-            Keep scrolling — moments of fellowship await below.
+            Keep scrolling — the next section will glide over this moment.
           </p>
           <div className="mt-8 flex flex-col items-center gap-1 text-white/60 animate-bounce">
             <span className="text-[10px] uppercase tracking-wider">Scroll</span>
