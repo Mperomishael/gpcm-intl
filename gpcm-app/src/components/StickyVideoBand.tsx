@@ -40,7 +40,7 @@ export default function StickyVideoBand() {
             ready ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <source src="/lv_0_20260809121737.webm" type="video/webm" />
+          <source src="/worshipers.webm" type="video/webm" />
         </video>
 
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/60 pointer-events-none" />
