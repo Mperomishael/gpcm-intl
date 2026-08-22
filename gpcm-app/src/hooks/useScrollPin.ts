@@ -54,7 +54,12 @@ export function useScrollPin<T extends HTMLElement>() {
 
       if (rect.top > 0) {
         setPhase('before');
-      } else if (rect.bottom <= vh) {
+      } else if (rect.bottom <= 0) {
+        // Wrapper has fully scrolled past (its bottom edge has cleared the
+        // viewport top), not merely reached the viewport bottom. This keeps
+        // the video truly fixed for the entire time the next section is
+        // climbing up over it, instead of releasing early once the wrapper's
+        // edge first touches the bottom of the screen.
         setPhase('after');
       } else {
         setPhase('pinned');
