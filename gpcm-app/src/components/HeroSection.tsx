@@ -115,8 +115,9 @@ export default function HeroSection({ onOpenLiveModal }: HeroSectionProps) {
   return (
     <section
       id="home"
-      className="relative min-h-[100svh] min-h-screen flex items-center justify-center overflow-hidden pt-14"
+      className="relative h-[130vh] sm:h-[140vh] md:h-[150vh]"
     >
+      <div className="sticky top-0 h-[100svh] h-screen flex items-center justify-center overflow-hidden pt-14">
       {showLoader && (
         <div
           className="absolute inset-0 z-30 bg-zinc-950 flex flex-col overflow-hidden"
@@ -234,6 +235,7 @@ export default function HeroSection({ onOpenLiveModal }: HeroSectionProps) {
         >
           Sermons below · arrow opens live stream
         </p>
+      </div>
       </div>
     </section>
   );
