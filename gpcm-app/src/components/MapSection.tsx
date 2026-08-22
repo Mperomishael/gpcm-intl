@@ -58,7 +58,7 @@ export default function MapSection() {
               </div>
               <div className="text-sm sm:text-base leading-snug">
                 <p className="font-medium text-white">Service Times</p>
-                <p className="text-zinc-400 mt-0.5">Sundays, 10:00 AM – 12:00 PM</p>
+                <p className="text-zinc-400 mt-0.5">Sundays, 9:00 AM – 12:00 PM</p>
                 <p className="text-zinc-400">Thursdays, 9:00 AM – 12:00 PM</p>
               </div>
             </div>
